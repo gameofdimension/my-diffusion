@@ -24,7 +24,7 @@ class TimestepEmbedding(nn.Module):
         self.linear_2 = nn.Linear(
             time_embed_dim, time_embed_dim_out, sample_proj_bias)
 
-    def forward(self, sample, condition=None):
+    def forward(self, sample):
         sample = self.linear_1(sample)
         sample = self.act(sample)
         sample = self.linear_2(sample)
