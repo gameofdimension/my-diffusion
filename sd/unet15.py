@@ -322,3 +322,6 @@ if __name__ == "__main__":
     for param in unet.named_parameters():
         print(param[0], param[1].size())
         break
+
+    for mod in unet.named_modules():
+        print(mod[0], mod[1].__class__.__name__)
