@@ -119,35 +119,41 @@ class BasicTransformerBlock(nn.Module):
         dim: int,
         num_attention_heads: int,
         attention_head_dim: int,
-        dropout=0.0,
-        cross_attention_dim: Optional[int] = None,
-        activation_fn: str = "geglu",
-        num_embeds_ada_norm: Optional[int] = None,
-        attention_bias: bool = False,
-        only_cross_attention: bool = False,
-        double_self_attention: bool = False,
-        upcast_attention: bool = False,
-        norm_elementwise_affine: bool = True,
-        # 'layer_norm', 'ada_norm', 'ada_norm_zero', 'ada_norm_single', 'layer_norm_i2vgen'
-        norm_type: str = "layer_norm",
-        norm_eps: float = 1e-5,
-        final_dropout: bool = False,
-        attention_type: str = "default",
-        positional_embeddings: Optional[str] = None,
-        num_positional_embeddings: Optional[int] = None,
-        ada_norm_continous_conditioning_embedding_dim: Optional[int] = None,
-        ada_norm_bias: Optional[int] = None,
-        ff_inner_dim: Optional[int] = None,
-        ff_bias: bool = True,
-        attention_out_bias: bool = True,
     ):
-        assert norm_type == 'layer_norm'
-        assert positional_embeddings is None
-        assert not double_self_attention
-        assert not only_cross_attention
-        assert attention_type == 'default'
-
         super().__init__()
+        dropout = 0.0
+        cross_attention_dim: int = 1024  # Optional[int] = None,
+        activation_fn: str = "geglu"
+        # num_embeds_ada_norm: Optional[int] = None,
+        attention_bias: bool = False
+        only_cross_attention: bool = False
+        # double_self_attention: bool = False,
+        # upcast_attention: bool = False,
+        norm_elementwise_affine: bool = True
+        # 'layer_norm', 'ada_norm', 'ada_norm_zero', 'ada_norm_single', 'layer_norm_i2vgen'
+        norm_type: str = "layer_norm"
+        norm_eps: float = 1e-5
+        # final_dropout: bool = False
+        # attention_type: str = "default",
+        # positional_embeddings: Optional[str] = None,
+        # num_positional_embeddings: Optional[int] = None,
+        # ada_norm_continous_conditioning_embedding_dim: Optional[int] = None,
+        # ada_norm_bias: Optional[int] = None,
+        # ff_inner_dim: Optional[int] = None
+        ff_bias: bool = True
+        attention_out_bias: bool = True
+
+        # print("BasicTransformerBlock", dim, num_attention_heads, attention_head_dim, 
+        #       dropout, cross_attention_dim, activation_fn, attention_bias, 
+        #       only_cross_attention, norm_elementwise_affine, norm_type, 
+        #       norm_eps, final_dropout, ff_inner_dim, ff_bias, attention_out_bias)
+        # 1024 geglu False False True layer_norm 1e-05 False None True True
+        assert norm_type == 'layer_norm'
+        # assert positional_embeddings is None
+        # assert not double_self_attention
+        assert not only_cross_attention
+        # assert attention_type == 'default'
+
         self.only_cross_attention = only_cross_attention
 
         # We keep these boolean flags for backward-compatibility.
@@ -166,7 +172,7 @@ class BasicTransformerBlock(nn.Module):
         #     )
 
         self.norm_type = norm_type
-        self.num_embeds_ada_norm = num_embeds_ada_norm
+        # self.num_embeds_ada_norm = num_embeds_ada_norm
 
         # if positional_embeddings and (num_positional_embeddings is None):
         #     raise ValueError(
@@ -204,8 +210,8 @@ class BasicTransformerBlock(nn.Module):
             dim_head=attention_head_dim,
             dropout=dropout,
             bias=attention_bias,
-            cross_attention_dim=cross_attention_dim if only_cross_attention else None,
-            upcast_attention=upcast_attention,
+            cross_attention_dim=None,
+            # upcast_attention=upcast_attention,
             out_bias=attention_out_bias,
         )
 
@@ -231,14 +237,16 @@ class BasicTransformerBlock(nn.Module):
 
         self.attn2 = Attention(
             query_dim=dim,
-            cross_attention_dim=cross_attention_dim if not double_self_attention else None,
+            # if not double_self_attention else None,
             heads=num_attention_heads,
             dim_head=attention_head_dim,
             dropout=dropout,
             bias=attention_bias,
-            upcast_attention=upcast_attention,
+            cross_attention_dim=cross_attention_dim,
+            # upcast_attention=upcast_attention,
             out_bias=attention_out_bias,
-        )  # is self-attn if encoder_hidden_states is none
+        )
+        # is self-attn if encoder_hidden_states is none
         # else:
         #     self.norm2 = None
         #     self.attn2 = None
@@ -259,12 +267,17 @@ class BasicTransformerBlock(nn.Module):
         # elif norm_type == "layer_norm_i2vgen":
         #     self.norm3 = None
 
+        # dim: int,
+        # mult: int = 4,
+        # dropout: float = 0.0,
+        # activation_fn: str = "geglu",
+        # bias: bool = True,
         self.ff = FeedForward(
             dim,
             dropout=dropout,
             activation_fn=activation_fn,
-            final_dropout=final_dropout,
-            inner_dim=ff_inner_dim,
+            # final_dropout=final_dropout,
+            # inner_dim=ff_inner_dim,
             bias=ff_bias,
         )
 
@@ -279,34 +292,34 @@ class BasicTransformerBlock(nn.Module):
         #         torch.randn(6, dim) / dim**0.5)
 
         # let chunk size default to None
-        self._chunk_size = None
-        self._chunk_dim = 0
+        # self._chunk_size = None
+        # self._chunk_dim = 0
 
-    def set_chunk_feed_forward(self, chunk_size: Optional[int], dim: int = 0):
-        # Sets chunk feed-forward
-        self._chunk_size = chunk_size
-        self._chunk_dim = dim
+    # def set_chunk_feed_forward(self, chunk_size: Optional[int], dim: int = 0):
+    #     # Sets chunk feed-forward
+    #     self._chunk_size = chunk_size
+    #     self._chunk_dim = dim
 
     def forward(
         self,
         hidden_states: torch.FloatTensor,
-        attention_mask: Optional[torch.FloatTensor] = None,
-        encoder_hidden_states: Optional[torch.FloatTensor] = None,
-        encoder_attention_mask: Optional[torch.FloatTensor] = None,
-        timestep: Optional[torch.LongTensor] = None,
-        cross_attention_kwargs: Dict[str, Any] = None,
-        class_labels: Optional[torch.LongTensor] = None,
-        added_cond_kwargs: Optional[Dict[str, torch.Tensor]] = None,
+        # attention_mask: Optional[torch.FloatTensor] = None,
+        encoder_hidden_states: torch.FloatTensor,
+        # encoder_attention_mask: Optional[torch.FloatTensor] = None,
+        # timestep: Optional[torch.LongTensor] = None,
+        # cross_attention_kwargs: Dict[str, Any] = None,
+        # class_labels: Optional[torch.LongTensor] = None,
+        # added_cond_kwargs: Optional[Dict[str, torch.Tensor]] = None,
     ) -> torch.FloatTensor:
-        assert attention_mask is None
-        assert encoder_attention_mask is None
-        assert timestep is None
-        assert cross_attention_kwargs is None
-        assert class_labels is None
-        assert added_cond_kwargs is None
+        # assert attention_mask is None
+        # assert encoder_attention_mask is None
+        # assert timestep is None
+        # assert cross_attention_kwargs is None
+        # assert class_labels is None
+        # assert added_cond_kwargs is None
         # Notice that normalization is always applied before the real computation in the following blocks.
         # 0. Self-Attention
-        batch_size = hidden_states.shape[0]
+        # batch_size = hidden_states.shape[0]
 
         # if self.norm_type == "ada_norm":
         #     norm_hidden_states = self.norm1(hidden_states, timestep)
@@ -334,20 +347,21 @@ class BasicTransformerBlock(nn.Module):
         # if self.pos_embed is not None:
         #     norm_hidden_states = self.pos_embed(norm_hidden_states)
 
-        # 1. Retrieve lora scale.
-        lora_scale = cross_attention_kwargs.get(
-            "scale", 1.0) if cross_attention_kwargs is not None else 1.0
+        # # 1. Retrieve lora scale.
+        # lora_scale = cross_attention_kwargs.get(
+        #     "scale", 1.0) if cross_attention_kwargs is not None else 1.0
 
-        # 2. Prepare GLIGEN inputs
-        cross_attention_kwargs = cross_attention_kwargs.copy(
-        ) if cross_attention_kwargs is not None else {}
-        gligen_kwargs = cross_attention_kwargs.pop("gligen", None)
+        # # 2. Prepare GLIGEN inputs
+        # cross_attention_kwargs = cross_attention_kwargs.copy(
+        # ) if cross_attention_kwargs is not None else {}
+        # gligen_kwargs = cross_attention_kwargs.pop("gligen", None)
 
         attn_output = self.attn1(
             norm_hidden_states,
-            encoder_hidden_states=encoder_hidden_states if self.only_cross_attention else None,
-            attention_mask=attention_mask,
-            **cross_attention_kwargs,
+            # encoder_hidden_states if self.only_cross_attention else None,
+            encoder_hidden_states=None,
+            # attention_mask=attention_mask,
+            # **cross_attention_kwargs,
         )
         # if self.norm_type == "ada_norm_zero":
         #     attn_output = gate_msa.unsqueeze(1) * attn_output
@@ -355,8 +369,8 @@ class BasicTransformerBlock(nn.Module):
         #     attn_output = gate_msa * attn_output
 
         hidden_states = attn_output + hidden_states
-        if hidden_states.ndim == 4:
-            hidden_states = hidden_states.squeeze(1)
+        # if hidden_states.ndim == 4:
+        #     hidden_states = hidden_states.squeeze(1)
 
         # 2.5 GLIGEN Control
         # if gligen_kwargs is not None:
@@ -384,8 +398,8 @@ class BasicTransformerBlock(nn.Module):
         attn_output = self.attn2(
             norm_hidden_states,
             encoder_hidden_states=encoder_hidden_states,
-            attention_mask=encoder_attention_mask,
-            **cross_attention_kwargs,
+            # attention_mask=encoder_attention_mask,
+            # **cross_attention_kwargs,
         )
         hidden_states = attn_output + hidden_states
 
@@ -412,7 +426,7 @@ class BasicTransformerBlock(nn.Module):
         #         self.ff, norm_hidden_states, self._chunk_dim, self._chunk_size, lora_scale=lora_scale
         #     )
         # else:
-        ff_output = self.ff(norm_hidden_states, scale=lora_scale)
+        ff_output = self.ff(norm_hidden_states)
 
         # if self.norm_type == "ada_norm_zero":
         #     ff_output = gate_mlp.unsqueeze(1) * ff_output
@@ -420,8 +434,8 @@ class BasicTransformerBlock(nn.Module):
         #     ff_output = gate_mlp * ff_output
 
         hidden_states = ff_output + hidden_states
-        if hidden_states.ndim == 4:
-            hidden_states = hidden_states.squeeze(1)
+        # if hidden_states.ndim == 4:
+        #     hidden_states = hidden_states.squeeze(1)
 
         return hidden_states
 
