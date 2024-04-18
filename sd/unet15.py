@@ -11,6 +11,7 @@ from transformers import PretrainedConfig
 
 from sd.time_embed import TimestepEmbedding, Timesteps
 
+from diffusers.models.attention_processor import Attention as GoldAttention
 
 class CrossAttnDownBlock2D(torch.nn.Module):
     def __init__(self) -> None:
@@ -324,4 +325,7 @@ if __name__ == "__main__":
         break
 
     for mod in unet.named_modules():
-        print(mod[0], mod[1].__class__.__name__)
+        # print(mod[0], mod[1].__class__.__name__)
+        if isinstance(mod[1], GoldAttention):
+            for param in mod[1].named_parameters():
+                print("------", mod[0], param[0], param[1].size())

@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+
 import torch
 from torch import nn
 
@@ -40,6 +41,75 @@ class FeedForward(nn.Module):
             self, hidden_states: torch.Tensor, scale: float = 1.0) -> torch.Tensor:
         for module in self.net:
             hidden_states = module(hidden_states)
+        return hidden_states
+
+
+class Attention(nn.Module):
+    def __init__(
+        self,
+        query_dim: int,
+        cross_attention_dim: Optional[int] = None,
+        heads: int = 8,
+        dim_head: int = 64,
+        dropout: float = 0.0,
+        bias: bool = False,
+        out_bias: bool = True,
+    ) -> None:
+        super().__init__()
+
+        self.inner_dim = dim_head * heads
+        self.cross_attention_dim = cross_attention_dim or query_dim
+        self.out_dim = query_dim
+        self.heads = heads
+
+        self.to_q = nn.Linear(query_dim, self.inner_dim, bias=bias)
+        self.to_k = nn.Linear(self.cross_attention_dim,
+                              self.inner_dim, bias=bias)
+        self.to_v = nn.Linear(self.cross_attention_dim,
+                              self.inner_dim, bias=bias)
+        self.to_out = nn.ModuleList([])
+        self.to_out.append(
+            nn.Linear(self.inner_dim, self.out_dim, bias=out_bias))
+        self.to_out.append(nn.Dropout(dropout))
+
+    def forward(
+            self, hidden_states: torch.Tensor,
+            encoder_hidden_states: torch.Tensor = None) -> torch.Tensor:
+        assert hidden_states.ndim == 3
+        batch_size = hidden_states.shape[0]
+
+        if encoder_hidden_states is None:
+            encoder_hidden_states = hidden_states
+
+        query = self.to_q(hidden_states)
+        key = self.to_k(encoder_hidden_states)
+        value = self.to_v(encoder_hidden_states)
+
+        inner_dim = key.shape[-1]
+        head_dim = inner_dim // self.heads
+
+        query = query.view(
+            batch_size, -1, self.heads, head_dim).transpose(1, 2)
+
+        key = key.view(batch_size, -1, self.heads, head_dim).transpose(1, 2)
+        value = value.view(
+            batch_size, -1, self.heads, head_dim).transpose(1, 2)
+
+        # the output of sdp = (batch, num_heads, seq_len, head_dim)
+        # TODO: add support for self.scale when we move to Torch 2.1
+        hidden_states = torch.nn.functional.scaled_dot_product_attention(
+            query, key, value, dropout_p=0.0, is_causal=False
+        )
+
+        hidden_states = hidden_states.transpose(1, 2).reshape(
+            batch_size, -1, self.heads * head_dim)
+        hidden_states = hidden_states.to(query.dtype)
+
+        # linear proj
+        hidden_states = self.to_out[0](hidden_states)
+        # dropout
+        hidden_states = self.to_out[1](hidden_states)
+
         return hidden_states
 
 
@@ -293,31 +363,31 @@ class BasicTransformerBlock(nn.Module):
         #     hidden_states = self.fuser(hidden_states, gligen_kwargs["objs"])
 
         # 3. Cross-Attention
-        if self.attn2 is not None:
-            # if self.norm_type == "ada_norm":
-            #     norm_hidden_states = self.norm2(hidden_states, timestep)
-            # elif self.norm_type in ["ada_norm_zero", "layer_norm", "layer_norm_i2vgen"]:
-            norm_hidden_states = self.norm2(hidden_states)
-            # elif self.norm_type == "ada_norm_single":
-            #     # For PixArt norm2 isn't applied here:
-            #     # https://github.com/PixArt-alpha/PixArt-alpha/blob/0f55e922376d8b797edd44d25d0e7464b260dcab/diffusion/model/nets/PixArtMS.py#L70C1-L76C103
-            #     norm_hidden_states = hidden_states
-            # elif self.norm_type == "ada_norm_continuous":
-            #     norm_hidden_states = self.norm2(
-            #         hidden_states, added_cond_kwargs["pooled_text_emb"])
-            # else:
-            #     raise ValueError("Incorrect norm")
+        # if self.attn2 is not None:
+        # if self.norm_type == "ada_norm":
+        #     norm_hidden_states = self.norm2(hidden_states, timestep)
+        # elif self.norm_type in ["ada_norm_zero", "layer_norm", "layer_norm_i2vgen"]:
+        norm_hidden_states = self.norm2(hidden_states)
+        # elif self.norm_type == "ada_norm_single":
+        #     # For PixArt norm2 isn't applied here:
+        #     # https://github.com/PixArt-alpha/PixArt-alpha/blob/0f55e922376d8b797edd44d25d0e7464b260dcab/diffusion/model/nets/PixArtMS.py#L70C1-L76C103
+        #     norm_hidden_states = hidden_states
+        # elif self.norm_type == "ada_norm_continuous":
+        #     norm_hidden_states = self.norm2(
+        #         hidden_states, added_cond_kwargs["pooled_text_emb"])
+        # else:
+        #     raise ValueError("Incorrect norm")
 
-            # if self.pos_embed is not None and self.norm_type != "ada_norm_single":
-            #     norm_hidden_states = self.pos_embed(norm_hidden_states)
+        # if self.pos_embed is not None and self.norm_type != "ada_norm_single":
+        #     norm_hidden_states = self.pos_embed(norm_hidden_states)
 
-            attn_output = self.attn2(
-                norm_hidden_states,
-                encoder_hidden_states=encoder_hidden_states,
-                attention_mask=encoder_attention_mask,
-                **cross_attention_kwargs,
-            )
-            hidden_states = attn_output + hidden_states
+        attn_output = self.attn2(
+            norm_hidden_states,
+            encoder_hidden_states=encoder_hidden_states,
+            attention_mask=encoder_attention_mask,
+            **cross_attention_kwargs,
+        )
+        hidden_states = attn_output + hidden_states
 
         # 4. Feed-forward
         # i2vgen doesn't have this norm 🤷‍♂️

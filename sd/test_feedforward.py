@@ -1,8 +1,8 @@
 import torch
 from diffusers import UNet2DConditionModel
+from diffusers.models.attention import FeedForward as GoldFeedForward
 
 from sd.transformer import FeedForward
-from diffusers.models.attention import FeedForward as GoldFeedForward
 
 
 def test_ff():
@@ -25,7 +25,10 @@ def test_ff():
 
             output = ff(data)
             gold = gold_ff(data)
-            print(mod[0], (gold - output).abs().max().item())
+
+            delta = (gold - output).abs().max().item()
+            print(mod[0], delta)
+            assert delta < 1e-6
 
 
 if __name__ == '__main__':
