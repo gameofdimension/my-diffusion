@@ -22,7 +22,7 @@ def test_attention():
                     query_dim=query_dim,
                     cross_attention_dim=None,
                     heads=gold_attn.heads,
-                    dim_head=64
+                    dim_head=64,
                 )
             else:
                 cross_attention_dim = gold_attn.cross_attention_dim
@@ -30,7 +30,7 @@ def test_attention():
                     query_dim=query_dim,
                     cross_attention_dim=cross_attention_dim,
                     heads=gold_attn.heads,
-                    dim_head=64
+                    dim_head=64,
                 )
 
             attn.load_state_dict(gold_attn.state_dict())
