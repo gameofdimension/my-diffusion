@@ -106,7 +106,6 @@ def test_crossattnblock():
 
     for mod in unet.named_modules():
         if isinstance(mod[1], GoldAttnDownBlock2D):
-            print(mod[0])
             gold_block = mod[1]
 
             num_attention_heads = gold_block.num_attention_heads
