@@ -316,15 +316,7 @@ class UpBlock2D(nn.Module):
         prev_output_channel: int,
         out_channels: int,
         temb_channels: int,
-        # resolution_idx: Optional[int] = None,
-        # resnet_eps: float = 1e-6,
-        # resnet_time_scale_shift: str = "default",
-        # resnet_act_fn: str = "swish",
-        # resnet_pre_norm: bool = True,
-        # output_scale_factor: float = 1.0,
     ):
-        # print("UpBlock2D", dropout, num_layers, resnet_groups, add_upsample)
-        # UpBlock2D 0.0 3 32 True
         super().__init__()
         dropout: float = 0.0
         num_layers: int = 3
@@ -332,27 +324,19 @@ class UpBlock2D(nn.Module):
         add_upsample: bool = True
 
         resnets = []
-
         for i in range(num_layers):
             res_skip_channels = in_channels if (
                 i == num_layers - 1) else out_channels
             resnet_in_channels = prev_output_channel if i == 0 else out_channels  # noqa
-
             resnets.append(
                 ResnetBlock2D(
                     in_channels=resnet_in_channels + res_skip_channels,
                     out_channels=out_channels,
                     temb_channels=temb_channels,
-                    # eps=resnet_eps,
                     groups=resnet_groups,
                     dropout=dropout,
-                    # time_embedding_norm=resnet_time_scale_shift,
-                    # non_linearity=resnet_act_fn,
-                    # output_scale_factor=output_scale_factor,
-                    # pre_norm=resnet_pre_norm,
                 )
             )
-
         self.resnets = nn.ModuleList(resnets)
 
         if add_upsample:
@@ -365,69 +349,22 @@ class UpBlock2D(nn.Module):
         else:
             self.upsamplers = None
 
-        # self.gradient_checkpointing = False
-        # self.resolution_idx = resolution_idx
-
     def forward(
         self,
         hidden_states: torch.FloatTensor,
         res_hidden_states_tuple: Tuple[torch.FloatTensor, ...],
         temb: torch.FloatTensor,
-        # upsample_size: Optional[int] = None,
-        # scale: float = 1.0,
     ) -> torch.FloatTensor:
-        # is_freeu_enabled = (
-        #     getattr(self, "s1", None)
-        #     and getattr(self, "s2", None)
-        #     and getattr(self, "b1", None)
-        #     and getattr(self, "b2", None)
-        # )
-
         for resnet in self.resnets:
-            # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
-
-            # FreeU: Only operate on the first two stages
-            # if is_freeu_enabled:
-            #     hidden_states, res_hidden_states = apply_freeu(
-            #         self.resolution_idx,
-            #         hidden_states,
-            #         res_hidden_states,
-            #         s1=self.s1,
-            #         s2=self.s2,
-            #         b1=self.b1,
-            #         b2=self.b2,
-            #     )
-
             hidden_states = torch.cat(
                 [hidden_states, res_hidden_states], dim=1)
-
-            # if self.training and self.gradient_checkpointing:
-
-            #     def create_custom_forward(module):
-            #         def custom_forward(*inputs):
-            #             return module(*inputs)
-
-            #         return custom_forward
-
-            #     if is_torch_version(">=", "1.11.0"):
-            #         hidden_states = torch.utils.checkpoint.checkpoint(
-            #             create_custom_forward(resnet), hidden_states, temb, use_reentrant=False
-            #         )
-            #     else:
-            #         hidden_states = torch.utils.checkpoint.checkpoint(
-            #             create_custom_forward(resnet), hidden_states, temb
-            #         )
-            # else:
             hidden_states = resnet(hidden_states, temb)
 
         if self.upsamplers is not None:
             for upsampler in self.upsamplers:
-                hidden_states = upsampler(
-                    hidden_states,
-                    # upsample_size, scale=scale
-                    )
+                hidden_states = upsampler(hidden_states)
 
         return hidden_states
 
