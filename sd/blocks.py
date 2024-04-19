@@ -316,37 +316,40 @@ class UpBlock2D(nn.Module):
         prev_output_channel: int,
         out_channels: int,
         temb_channels: int,
-        resolution_idx: Optional[int] = None,
-        dropout: float = 0.0,
-        num_layers: int = 1,
-        resnet_eps: float = 1e-6,
-        resnet_time_scale_shift: str = "default",
-        resnet_act_fn: str = "swish",
-        resnet_groups: int = 32,
-        resnet_pre_norm: bool = True,
-        output_scale_factor: float = 1.0,
-        add_upsample: bool = True,
+        # resolution_idx: Optional[int] = None,
+        # resnet_eps: float = 1e-6,
+        # resnet_time_scale_shift: str = "default",
+        # resnet_act_fn: str = "swish",
+        # resnet_pre_norm: bool = True,
+        # output_scale_factor: float = 1.0,
     ):
+        # print("UpBlock2D", dropout, num_layers, resnet_groups, add_upsample)
+        # UpBlock2D 0.0 3 32 True
         super().__init__()
+        dropout: float = 0.0
+        num_layers: int = 3
+        resnet_groups: int = 32
+        add_upsample: bool = True
+
         resnets = []
 
         for i in range(num_layers):
             res_skip_channels = in_channels if (
                 i == num_layers - 1) else out_channels
-            resnet_in_channels = prev_output_channel if i == 0 else out_channels
+            resnet_in_channels = prev_output_channel if i == 0 else out_channels  # noqa
 
             resnets.append(
                 ResnetBlock2D(
                     in_channels=resnet_in_channels + res_skip_channels,
                     out_channels=out_channels,
                     temb_channels=temb_channels,
-                    eps=resnet_eps,
+                    # eps=resnet_eps,
                     groups=resnet_groups,
                     dropout=dropout,
-                    time_embedding_norm=resnet_time_scale_shift,
-                    non_linearity=resnet_act_fn,
-                    output_scale_factor=output_scale_factor,
-                    pre_norm=resnet_pre_norm,
+                    # time_embedding_norm=resnet_time_scale_shift,
+                    # non_linearity=resnet_act_fn,
+                    # output_scale_factor=output_scale_factor,
+                    # pre_norm=resnet_pre_norm,
                 )
             )
 
@@ -354,27 +357,31 @@ class UpBlock2D(nn.Module):
 
         if add_upsample:
             self.upsamplers = nn.ModuleList(
-                [Upsample2D(out_channels, use_conv=True, out_channels=out_channels)])
+                [
+                    Upsample2D(
+                        out_channels,
+                        out_channels=out_channels)
+                ])
         else:
             self.upsamplers = None
 
-        self.gradient_checkpointing = False
-        self.resolution_idx = resolution_idx
+        # self.gradient_checkpointing = False
+        # self.resolution_idx = resolution_idx
 
     def forward(
         self,
         hidden_states: torch.FloatTensor,
         res_hidden_states_tuple: Tuple[torch.FloatTensor, ...],
-        temb: Optional[torch.FloatTensor] = None,
-        upsample_size: Optional[int] = None,
-        scale: float = 1.0,
+        temb: torch.FloatTensor,
+        # upsample_size: Optional[int] = None,
+        # scale: float = 1.0,
     ) -> torch.FloatTensor:
-        is_freeu_enabled = (
-            getattr(self, "s1", None)
-            and getattr(self, "s2", None)
-            and getattr(self, "b1", None)
-            and getattr(self, "b2", None)
-        )
+        # is_freeu_enabled = (
+        #     getattr(self, "s1", None)
+        #     and getattr(self, "s2", None)
+        #     and getattr(self, "b1", None)
+        #     and getattr(self, "b2", None)
+        # )
 
         for resnet in self.resnets:
             # pop res hidden states
@@ -382,16 +389,16 @@ class UpBlock2D(nn.Module):
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
 
             # FreeU: Only operate on the first two stages
-            if is_freeu_enabled:
-                hidden_states, res_hidden_states = apply_freeu(
-                    self.resolution_idx,
-                    hidden_states,
-                    res_hidden_states,
-                    s1=self.s1,
-                    s2=self.s2,
-                    b1=self.b1,
-                    b2=self.b2,
-                )
+            # if is_freeu_enabled:
+            #     hidden_states, res_hidden_states = apply_freeu(
+            #         self.resolution_idx,
+            #         hidden_states,
+            #         res_hidden_states,
+            #         s1=self.s1,
+            #         s2=self.s2,
+            #         b1=self.b1,
+            #         b2=self.b2,
+            #     )
 
             hidden_states = torch.cat(
                 [hidden_states, res_hidden_states], dim=1)
@@ -413,12 +420,14 @@ class UpBlock2D(nn.Module):
             #             create_custom_forward(resnet), hidden_states, temb
             #         )
             # else:
-            hidden_states = resnet(hidden_states, temb, scale=scale)
+            hidden_states = resnet(hidden_states, temb)
 
         if self.upsamplers is not None:
             for upsampler in self.upsamplers:
                 hidden_states = upsampler(
-                    hidden_states, upsample_size, scale=scale)
+                    hidden_states,
+                    # upsample_size, scale=scale
+                    )
 
         return hidden_states
 
