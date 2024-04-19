@@ -1,11 +1,14 @@
 import torch
 from diffusers import UNet2DConditionModel
-from diffusers.models.attention import BasicTransformerBlock as TransformerBlock  # noqa
+from diffusers.models.attention import \
+    BasicTransformerBlock as TransformerBlock
+from diffusers.models.transformers.transformer_2d import \
+    Transformer2DModel as GoldTransformer
 
-from sd.transformer import BasicTransformerBlock
+from sd.transformer import BasicTransformerBlock, Transformer2DModel
 
 
-def test_transformer():
+def test_block():
     checkpoint = 'stabilityai/stable-diffusion-2-1'
 
     unet = UNet2DConditionModel.from_pretrained(
@@ -41,5 +44,42 @@ def test_transformer():
             assert delta < 1e-6
 
 
+def test_transformer():
+    checkpoint = 'stabilityai/stable-diffusion-2-1'
+
+    unet = UNet2DConditionModel.from_pretrained(
+        checkpoint, subfolder="unet",
+    )
+
+    for mod in unet.named_modules():
+        if isinstance(mod[1], GoldTransformer):
+            attention_head_dim = 64
+            gold_transformer = mod[1]
+            num_attention_heads = gold_transformer.in_channels // attention_head_dim  # noqa
+            transformer = Transformer2DModel(
+                in_channels=gold_transformer.in_channels,
+                num_attention_heads=num_attention_heads,
+                num_layers=1,
+            )
+
+            h = 32*64//(gold_transformer.in_channels//10)
+            hidden_states = torch.randn(
+                40, gold_transformer.in_channels, h, h)
+            encoder_hidden_states = torch.randn(40, 77, 1024)
+            transformer.load_state_dict(gold_transformer.state_dict())
+
+            output = transformer(
+                hidden_states=hidden_states,
+                encoder_hidden_states=encoder_hidden_states)[0]
+
+            gold_output = gold_transformer(
+                hidden_states=hidden_states,
+                encoder_hidden_states=encoder_hidden_states)[0]
+            delta = (gold_output - output).abs().max().item()
+            print(mod[0], delta)
+            assert delta < 1e-6
+
+
 if __name__ == '__main__':
+    test_block()
     test_transformer()
