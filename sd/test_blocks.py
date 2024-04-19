@@ -2,8 +2,10 @@ import torch
 from diffusers import UNet2DConditionModel
 from diffusers.models.downsampling import Downsample2D as GoldDownsample2D
 from diffusers.models.resnet import ResnetBlock2D as GoldResnetBlock2D
+from diffusers.models.unets.unet_2d_blocks import \
+    DownBlock2D as GoldDownBlock2D
 
-from sd.blocks import Downsample2D, ResnetBlock2D
+from sd.blocks import DownBlock2D, Downsample2D, ResnetBlock2D
 
 
 def test_downsample():
@@ -63,6 +65,36 @@ def test_resnetblock():
             assert delta < 1e-6
 
 
+def test_downblock():
+    checkpoint = 'stabilityai/stable-diffusion-2-1'
+
+    unet = UNet2DConditionModel.from_pretrained(
+        checkpoint, subfolder="unet",
+    )
+
+    for mod in unet.named_modules():
+        if isinstance(mod[1], GoldDownBlock2D):
+            print(mod[0])
+            gold_block = mod[1]
+            block = DownBlock2D(
+                in_channels=1280,
+                out_channels=1280,
+                temb_channels=1280,
+                num_layers=2,
+            )
+            block.load_state_dict(gold_block.state_dict())
+
+            data = torch.randn(10, 1280, 16, 16)
+            temb = torch.randn(10, 1280)
+            output = block(hidden_states=data, temb=temb)[0]
+            gold = gold_block(hidden_states=data, temb=temb)[0]
+
+            delta = (gold - output).abs().max().item()
+            print(mod[0], delta)
+            assert delta < 1e-6
+
+
 if __name__ == '__main__':
     # test_downsample()
-    test_resnetblock()
+    # test_resnetblock()
+    test_downblock()
