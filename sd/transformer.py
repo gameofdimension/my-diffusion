@@ -38,7 +38,8 @@ class FeedForward(nn.Module):
         self.net.append(nn.Linear(inner_dim, dim_out, bias=bias))
 
     def forward(
-            self, hidden_states: torch.Tensor, scale: float = 1.0) -> torch.Tensor:
+            self, hidden_states: torch.Tensor
+    ) -> torch.Tensor:
         for module in self.net:
             hidden_states = module(hidden_states)
         return hidden_states
@@ -214,7 +215,8 @@ class Transformer2DModel(torch.nn.Module):
         inner_dim = num_attention_heads * attention_head_dim
         self.in_channels = in_channels
         self.norm = torch.nn.GroupNorm(
-            num_groups=norm_num_groups, num_channels=in_channels, eps=1e-6, affine=True)
+            num_groups=norm_num_groups,
+            num_channels=in_channels, eps=1e-6, affine=True)
         self.proj_in = nn.Linear(in_channels, inner_dim)
         self.transformer_blocks = nn.ModuleList(
             [
