@@ -1,4 +1,5 @@
-from typing import Any, Dict, Tuple, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
+
 import torch
 from torch import nn
 
@@ -49,60 +50,35 @@ class Downsample2D(nn.Module):
 
 
 class ResnetBlock2D(torch.nn.Module):
-    r"""
-    A Resnet block.
-
-    Parameters:
-        in_channels (`int`): The number of channels in the input.
-        out_channels (`int`, *optional*, default to be `None`):
-            The number of output channels for the first conv2d layer. If None, same as `in_channels`.
-        dropout (`float`, *optional*, defaults to `0.0`): The dropout probability to use.
-        temb_channels (`int`, *optional*, default to `512`): the number of channels in timestep embedding.
-        groups (`int`, *optional*, default to `32`): The number of groups to use for the first normalization layer.
-        groups_out (`int`, *optional*, default to None):
-            The number of groups to use for the second normalization layer. if set to None, same as `groups`.
-        eps (`float`, *optional*, defaults to `1e-6`): The epsilon to use for the normalization.
-        non_linearity (`str`, *optional*, default to `"swish"`): the activation function to use.
-        time_embedding_norm (`str`, *optional*, default to `"default"` ): Time scale shift config.
-            By default, apply timestep embedding conditioning with a simple shift mechanism. Choose "scale_shift"
-            for a stronger conditioning with scale and shift.
-        kernel (`torch.FloatTensor`, optional, default to None): FIR filter, see
-            [`~models.resnet.FirUpsample2D`] and [`~models.resnet.FirDownsample2D`].
-        output_scale_factor (`float`, *optional*, default to be `1.0`): the scale factor to use for the output.
-        use_in_shortcut (`bool`, *optional*, default to `True`):
-            If `True`, add a 1x1 nn.conv2d layer for skip-connection.
-        up (`bool`, *optional*, default to `False`): If `True`, add an upsample layer.
-        down (`bool`, *optional*, default to `False`): If `True`, add a downsample layer.
-        conv_shortcut_bias (`bool`, *optional*, default to `True`):  If `True`, adds a learnable bias to the
-            `conv_shortcut` output.
-        conv_2d_out_channels (`int`, *optional*, default to `None`): the number of channels in the output.
-            If None, same as `out_channels`.
-    """
-
     def __init__(
         self,
-        *,
         in_channels: int,
-        out_channels: Optional[int] = None,
-        conv_shortcut: bool = False,
+        out_channels: int,
+        # conv_shortcut: bool = False,
         dropout: float = 0.0,
         temb_channels: int = 512,
         groups: int = 32,
-        groups_out: Optional[int] = None,
-        pre_norm: bool = True,
-        eps: float = 1e-6,
-        non_linearity: str = "swish",
-        skip_time_act: bool = False,
-        time_embedding_norm: str = "default",  # default, scale_shift,
-        kernel: Optional[torch.FloatTensor] = None,
-        output_scale_factor: float = 1.0,
-        use_in_shortcut: Optional[bool] = None,
-        up: bool = False,
-        down: bool = False,
-        conv_shortcut_bias: bool = True,
-        conv_2d_out_channels: Optional[int] = None,
+        # groups_out: Optional[int] = None,
+        # pre_norm: bool = True,
+        # eps: float = 1e-6,
+        # non_linearity: str = "swish",
+        # skip_time_act: bool = False,
+        # time_embedding_norm: str = "default",  # default, scale_shift,
+        # kernel: Optional[torch.FloatTensor] = None,
+        # output_scale_factor: float = 1.0,
+        # use_in_shortcut: Optional[bool] = None,
+        # up: bool = False,
+        # down: bool = False,
+        # conv_2d_out_channels: Optional[int] = None,
     ):
         super().__init__()
+        # assert groups_out is None
+        # assert kernel is None
+        # assert time_embedding_norm == "default"
+        # assert skip_time_act == conv_shortcut == up == down == False
+        # assert conv_2d_out_channels is None
+        # assert use_in_shortcut is None
+        # assert conv_shortcut_bias == True
         # if time_embedding_norm == "ada_group":
         #     raise ValueError(
         #         "This class cannot be used with `time_embedding_norm==ada_group`, please use `ResnetBlockCondNorm2D` instead",
@@ -111,10 +87,16 @@ class ResnetBlock2D(torch.nn.Module):
         #     raise ValueError(
         #         "This class cannot be used with `time_embedding_norm==spatial`, please use `ResnetBlockCondNorm2D` instead",
         #     )
+        conv_shortcut_bias: bool = True
+        output_scale_factor: float = 1.0
+        time_embedding_norm: str = "default"  # default, scale_shift,
+        eps: float = 1e-5
+        conv_shortcut: bool = False
+        skip_time_act: bool = False
 
         self.pre_norm = True
         self.in_channels = in_channels
-        out_channels = in_channels if out_channels is None else out_channels
+        # out_channels = in_channels if out_channels is None else out_channels
         self.out_channels = out_channels
         self.use_conv_shortcut = conv_shortcut
         # self.up = up
@@ -126,8 +108,8 @@ class ResnetBlock2D(torch.nn.Module):
         linear_cls = nn.Linear  # if USE_PEFT_BACKEND else LoRACompatibleLinear
         conv_cls = nn.Conv2d  # if USE_PEFT_BACKEND else LoRACompatibleConv
 
-        if groups_out is None:
-            groups_out = groups
+        # if groups_out is None:
+        groups_out = groups
 
         self.norm1 = torch.nn.GroupNorm(
             num_groups=groups, num_channels=in_channels, eps=eps, affine=True)
@@ -148,12 +130,14 @@ class ResnetBlock2D(torch.nn.Module):
         #     self.time_emb_proj = None
 
         self.norm2 = torch.nn.GroupNorm(
-            num_groups=groups_out, num_channels=out_channels, eps=eps, affine=True)
+            num_groups=groups_out, num_channels=out_channels,
+            eps=eps, affine=True)
 
         self.dropout = torch.nn.Dropout(dropout)
-        conv_2d_out_channels = conv_2d_out_channels or out_channels
-        self.conv2 = conv_cls(out_channels, conv_2d_out_channels,
-                              kernel_size=3, stride=1, padding=1)
+        conv_2d_out_channels = out_channels
+        self.conv2 = conv_cls(
+            out_channels, conv_2d_out_channels,
+            kernel_size=3, stride=1, padding=1)
 
         self.nonlinearity = torch.nn.SiLU()  # get_activation(non_linearity)
 
@@ -196,7 +180,7 @@ class ResnetBlock2D(torch.nn.Module):
         self,
         input_tensor: torch.FloatTensor,
         temb: torch.FloatTensor,
-        scale: float = 1.0,
+        # scale: float = 1.0,
     ) -> torch.FloatTensor:
         hidden_states = input_tensor
 
@@ -231,13 +215,13 @@ class ResnetBlock2D(torch.nn.Module):
         #     )
 
         hidden_states = self.conv1(
-            hidden_states, scale)  # if not USE_PEFT_BACKEND else self.conv1(hidden_states)
+            hidden_states)  # if not USE_PEFT_BACKEND else self.conv1(hidden_states)
 
         # if self.time_emb_proj is not None:
         #     if not self.skip_time_act:
         temb = self.nonlinearity(temb)
         temb = (
-            self.time_emb_proj(temb, scale)[:, :, None, None]
+            self.time_emb_proj(temb)[:, :, None, None]
             # if not USE_PEFT_BACKEND
             # else self.time_emb_proj(temb)[:, :, None, None]
         )
@@ -261,12 +245,12 @@ class ResnetBlock2D(torch.nn.Module):
 
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.conv2(
-            hidden_states, scale)  # if not USE_PEFT_BACKEND else self.conv2(hidden_states)
+            hidden_states)
 
         if self.conv_shortcut is not None:
             input_tensor = (
                 self.conv_shortcut(
-                    input_tensor, scale)  # if not USE_PEFT_BACKEND else self.conv_shortcut(input_tensor)
+                    input_tensor)
             )
 
         output_tensor = (input_tensor + hidden_states) / \
