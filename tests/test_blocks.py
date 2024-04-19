@@ -33,7 +33,6 @@ class ModelTest(unittest.TestCase):
                 block = Downsample2D(
                     channels=gold_block.channels,
                     out_channels=gold_block.out_channels,
-                    use_conv=gold_block.use_conv,
                     padding=gold_block.padding,
                     name=gold_block.name,
                 )

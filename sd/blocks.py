@@ -10,7 +10,6 @@ class Downsample2D(nn.Module):
     def __init__(
         self,
         channels: int,
-        use_conv: bool,
         out_channels: int,
         padding: int = 1,
         name: str = "conv",
@@ -20,25 +19,20 @@ class Downsample2D(nn.Module):
         super().__init__()
         self.channels = channels
         self.out_channels = out_channels
-        self.use_conv = use_conv
         self.padding = padding
         stride = 2
         self.name = name
 
-        if use_conv:
-            conv = nn.Conv2d(
-                self.channels, self.out_channels, kernel_size=kernel_size,
-                stride=stride, padding=padding, bias=bias
-            )
-        else:
-            assert self.channels == self.out_channels
-            conv = nn.AvgPool2d(kernel_size=stride, stride=stride)
+        conv = nn.Conv2d(
+            self.channels, self.out_channels, kernel_size=kernel_size,
+            stride=stride, padding=padding, bias=bias
+        )
         self.conv = conv
 
     def forward(self, hidden_states: torch.FloatTensor) -> torch.FloatTensor:
         assert hidden_states.shape[1] == self.channels
 
-        if self.use_conv and self.padding == 0:
+        if self.padding == 0:
             pad = (0, 1, 0, 1)
             hidden_states = torch.nn.functional.pad(
                 hidden_states, pad, mode="constant", value=0)
@@ -168,7 +162,6 @@ class DownBlock2D(nn.Module):
                 [
                     Downsample2D(
                         out_channels,
-                        use_conv=True,
                         out_channels=out_channels,
                         padding=downsample_padding,
                         name="op"
@@ -239,7 +232,7 @@ class CrossAttnDownBlock2D(nn.Module):
             self.downsamplers = nn.ModuleList(
                 [
                     Downsample2D(
-                        out_channels, use_conv=True,
+                        out_channels,
                         out_channels=out_channels,
                         padding=downsample_padding,
                         name="op"
