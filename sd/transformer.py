@@ -328,7 +328,9 @@ class BasicTransformerBlock(nn.Module):
         #         hidden_states, timestep, class_labels, hidden_dtype=hidden_states.dtype
         #     )
         # elif self.norm_type in ["layer_norm", "layer_norm_i2vgen"]:
+        print("1"*100, hidden_states[3, 5, :5])
         norm_hidden_states = self.norm1(hidden_states)
+        print("1"*100, norm_hidden_states[3, 5, :5])
         # elif self.norm_type == "ada_norm_continuous":
         #     norm_hidden_states = self.norm1(
         #         hidden_states, added_cond_kwargs["pooled_text_emb"])
@@ -363,6 +365,7 @@ class BasicTransformerBlock(nn.Module):
             # attention_mask=attention_mask,
             # **cross_attention_kwargs,
         )
+        print("1"*100, attn_output[3, 5, :5])
         # if self.norm_type == "ada_norm_zero":
         #     attn_output = gate_msa.unsqueeze(1) * attn_output
         # elif self.norm_type == "ada_norm_single":
@@ -381,6 +384,7 @@ class BasicTransformerBlock(nn.Module):
         # if self.norm_type == "ada_norm":
         #     norm_hidden_states = self.norm2(hidden_states, timestep)
         # elif self.norm_type in ["ada_norm_zero", "layer_norm", "layer_norm_i2vgen"]:
+        print("1"*100, hidden_states[3, 5, :5])
         norm_hidden_states = self.norm2(hidden_states)
         # elif self.norm_type == "ada_norm_single":
         #     # For PixArt norm2 isn't applied here:
@@ -394,6 +398,7 @@ class BasicTransformerBlock(nn.Module):
 
         # if self.pos_embed is not None and self.norm_type != "ada_norm_single":
         #     norm_hidden_states = self.pos_embed(norm_hidden_states)
+        print("1"*100, norm_hidden_states[3, 5, :5])
 
         attn_output = self.attn2(
             norm_hidden_states,
@@ -401,6 +406,7 @@ class BasicTransformerBlock(nn.Module):
             # attention_mask=encoder_attention_mask,
             # **cross_attention_kwargs,
         )
+        print("1"*100, attn_output[3, 5, :5])
         hidden_states = attn_output + hidden_states
 
         # 4. Feed-forward
@@ -410,6 +416,7 @@ class BasicTransformerBlock(nn.Module):
         #         hidden_states, added_cond_kwargs["pooled_text_emb"])
         # elif not self.norm_type == "ada_norm_single":
         #     norm_hidden_states = self.norm3(hidden_states)
+        norm_hidden_states = self.norm3(hidden_states)
 
         # if self.norm_type == "ada_norm_zero":
         #     norm_hidden_states = norm_hidden_states * \
