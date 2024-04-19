@@ -2,28 +2,15 @@ from typing import Any, Dict, Tuple, Optional, Union
 import torch
 from torch import nn
 
+from sd.transformer import Transformer2DModel
+
 
 class Downsample2D(nn.Module):
-    """A 2D downsampling layer with an optional convolution.
-
-    Parameters:
-        channels (`int`):
-            number of channels in the inputs and outputs.
-        use_conv (`bool`, default `False`):
-            option to use a convolution.
-        out_channels (`int`, optional):
-            number of output channels. Defaults to `channels`.
-        padding (`int`, default `1`):
-            padding for the convolution.
-        name (`str`, default `conv`):
-            name of the downsampling 2D layer.
-    """
-
     def __init__(
         self,
         channels: int,
-        use_conv: bool = False,
-        out_channels: Optional[int] = None,
+        use_conv: bool,
+        out_channels: int,
         padding: int = 1,
         name: str = "conv",
         kernel_size=3,
@@ -31,22 +18,11 @@ class Downsample2D(nn.Module):
     ):
         super().__init__()
         self.channels = channels
-        self.out_channels = out_channels or channels
+        self.out_channels = out_channels
         self.use_conv = use_conv
         self.padding = padding
         stride = 2
         self.name = name
-        # conv_cls = nn.Conv2d  # if USE_PEFT_BACKEND else LoRACompatibleConv
-
-        # print("------------------------", norm_type, name)
-        # if norm_type == "ln_norm":
-        #     self.norm = nn.LayerNorm(channels, eps, elementwise_affine)
-        # elif norm_type == "rms_norm":
-        #     self.norm = RMSNorm(channels, eps, elementwise_affine)
-        # elif norm_type is None:
-        #     self.norm = None
-        # else:
-        #     raise ValueError(f"unknown norm_type: {norm_type}")
 
         if use_conv:
             conv = nn.Conv2d(
@@ -56,23 +32,10 @@ class Downsample2D(nn.Module):
         else:
             assert self.channels == self.out_channels
             conv = nn.AvgPool2d(kernel_size=stride, stride=stride)
-
-        # TODO(Suraj, Patrick) - clean up after weight dicts are correctly renamed
-        # if name == "conv":
-        #     self.Conv2d_0 = conv
-        #     self.conv = conv
-        # elif name == "Conv2d_0":
-        #     self.conv = conv
-        # else:
-        #     self.conv = conv
         self.conv = conv
 
-    def forward(self, hidden_states: torch.FloatTensor, scale: float = 1.0) -> torch.FloatTensor:
+    def forward(self, hidden_states: torch.FloatTensor) -> torch.FloatTensor:
         assert hidden_states.shape[1] == self.channels
-
-        # if self.norm is not None:
-        #     hidden_states = self.norm(
-        #         hidden_states.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
 
         if self.use_conv and self.padding == 0:
             pad = (0, 1, 0, 1)
@@ -80,14 +43,6 @@ class Downsample2D(nn.Module):
                 hidden_states, pad, mode="constant", value=0)
 
         assert hidden_states.shape[1] == self.channels
-
-        # if not USE_PEFT_BACKEND:
-        #     if isinstance(self.conv, LoRACompatibleConv):
-        #         hidden_states = self.conv(hidden_states, scale)
-        #     else:
-        #         hidden_states = self.conv(hidden_states)
-        # else:
-        #     hidden_states = self.conv(hidden_states)
         hidden_states = self.conv(hidden_states)
 
         return hidden_states
