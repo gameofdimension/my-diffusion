@@ -77,7 +77,7 @@ class CondtionalUNet(torch.nn.Module):
                 num_layers=2,
             ),
         ])
-        self.middle_block = UNetMidBlock2DCrossAttn(
+        self.mid_block = UNetMidBlock2DCrossAttn(
             in_channels=self.block_out_channels[-1],
             temb_channels=time_embed_dim,
             num_attention_heads=self.num_attention_heads[-1],
@@ -161,13 +161,13 @@ class CondtionalUNet(torch.nn.Module):
                     hidden_states=sample, temb=emb)
             down_block_res_samples += res_samples
 
-        assert self.middle_block is not None
-        if self.middle_block.has_cross_attention:
-            sample = self.middle_block(
+        assert self.mid_block is not None
+        if self.mid_block.has_cross_attention:
+            sample = self.mid_block(
                 sample, emb,
                 encoder_hidden_states=encoder_hidden_states)
         else:
-            sample = self.middle_block(sample, emb)
+            sample = self.mid_block(sample, emb)
 
         for i, upsample_block in enumerate(self.up_blocks):
             res_samples = down_block_res_samples[-len(upsample_block.resnets):]
@@ -195,65 +195,25 @@ class CondtionalUNet(torch.nn.Module):
         return (sample,)
 
 
-def main():
-    pass
-
-
 if __name__ == "__main__":
-    # main()
-    # checkpoint = 'runwayml/stable-diffusion-v1-5'
     checkpoint = 'stabilityai/stable-diffusion-2-1'
-
     config = PretrainedConfig.get_config_dict(checkpoint, subfolder='unet')[0]
-    # print(json.dumps(config, indent=4))
-    # cfg = AutoConfig.from_pretrained(checkpoint, subfolder='unet')
-    # print(cfg)
-    print(diffusers.utils.constants.USE_PEFT_BACKEND)
 
     device = 'cuda'
     unet = UNet2DConditionModel.from_pretrained(
         checkpoint, subfolder="unet",
     ).to(device)
 
-    # for m in unet.modules():
-    #     print(m)
+    myunet = CondtionalUNet().to(device)
+    myunet.load_state_dict(unet.state_dict())
 
     bsz = 4
     latents = torch.randn(bsz, 4, 64, 64, device=device)
     timestep = torch.randint(0, 1000, (bsz, ), device=device)
-    # condition = torch.randn(bsz, 77, 768, device=device)
     condition = torch.randn(bsz, 77, 1024, device=device)
 
-    myunet = CondtionalUNet().to(device)
-    myunet.load_state_dict(unet.state_dict())
     out = myunet(latents, timestep, condition)[0]
 
-    # with get_accelerator().device(0):
-    #     flops, macs, params = get_model_profile(
-    #         unet,
-    #         args=[latents, timestep, condition],
-    #         kwargs={"return_dict": False},
-    #         print_profile=True,
-    #         detailed=True,
-    #         output_file='unet21_flops.txt',
-    #     )
-
     gold = unet(latents, timestep, condition, return_dict=False)[0]
-    # print(out[0].size())
 
     print((gold-out).abs().max().item())
-
-    # att = unet.attn_processors
-    # for k in att:
-    #     print(k, att[k].__class__.__name__)
-
-    # print(unet)
-    # for param in unet.named_parameters():
-    #     print(param[0], param[1].size())
-    #     break
-
-    # for mod in unet.named_modules():
-    #     # print(mod[0], mod[1].__class__.__name__)
-    #     if isinstance(mod[1], GoldAttention):
-    #         for param in mod[1].named_parameters():
-    #             print("------", mod[0], param[0], param[1].size())
