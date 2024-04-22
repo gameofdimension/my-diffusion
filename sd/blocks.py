@@ -142,6 +142,7 @@ class DownBlock2D(nn.Module):
         resnet_groups: int = 32
         add_downsample: bool = False
         downsample_padding: int = 1
+        self.has_cross_attention = False
 
         resnets = []
         for i in range(num_layers):
@@ -206,6 +207,7 @@ class CrossAttnDownBlock2D(nn.Module):
         resnets = []
         attentions = []
 
+        self.has_cross_attention = True
         self.num_attention_heads = num_attention_heads
         assert len(transformer_layers_per_block) == num_layers
 
@@ -315,6 +317,7 @@ class UpBlock2D(nn.Module):
         num_layers: int = 3
         resnet_groups: int = 32
         add_upsample: bool = True
+        self.has_cross_attention = False
 
         resnets = []
         for i in range(num_layers):
@@ -378,6 +381,7 @@ class CrossAttnUpBlock2D(nn.Module):
         resnets = []
         attentions = []
 
+        self.has_cross_attention = True
         self.num_attention_heads = num_attention_heads
         assert len(transformer_layers_per_block) == num_layers
 
@@ -447,6 +451,7 @@ class UNetMidBlock2DCrossAttn(nn.Module):
         num_attention_heads: int = 1,
     ):
         super().__init__()
+        self.has_cross_attention = True
         self.num_attention_heads = num_attention_heads
         resnets = [
             ResnetBlock2D(

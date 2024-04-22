@@ -1,14 +1,12 @@
-import math
-# import json
 from typing import Tuple
 
 import diffusers
 import torch
-# from deepspeed.accelerator import get_accelerator
-# from deepspeed.profiling.flops_profiler import get_model_profile
 from diffusers import UNet2DConditionModel
 from transformers import PretrainedConfig
 
+from sd.blocks import (CrossAttnDownBlock2D, CrossAttnUpBlock2D, DownBlock2D,
+                       UNetMidBlock2DCrossAttn, UpBlock2D)
 from sd.time_embed import TimestepEmbedding, Timesteps
 
 
@@ -23,6 +21,8 @@ class CondtionalUNet(torch.nn.Module):
     act_fn = 'silu'
     norm_num_groups: int = 32
     norm_eps: float = 1e-5
+    num_attention_heads = [5, 10, 20, 20]
+    num_upsamplers = 3
 
     def __init__(self) -> None:
         super().__init__()
@@ -41,9 +41,87 @@ class CondtionalUNet(torch.nn.Module):
         self.time_embedding = TimestepEmbedding(
             timestep_input_dim, time_embed_dim)
 
-        self.down_blocks = torch.nn.ModuleList([])
-        self.middle_block = torch.nn.Module([])
-        self.up_blocks = torch.nn.ModuleList([])
+        self.down_blocks = torch.nn.ModuleList([
+            CrossAttnDownBlock2D(
+                in_channels=self.block_out_channels[0],
+                out_channels=self.block_out_channels[0],
+                num_attention_heads=self.num_attention_heads[0],
+                temb_channels=time_embed_dim,
+                num_layers=2,
+                transformer_layers_per_block=[1, 1],
+                add_downsample=True,
+            ),
+            CrossAttnDownBlock2D(
+                in_channels=self.block_out_channels[0],
+                out_channels=self.block_out_channels[1],
+                num_attention_heads=self.num_attention_heads[1],
+                temb_channels=time_embed_dim,
+                num_layers=2,
+                transformer_layers_per_block=[1, 1],
+                add_downsample=True,
+
+            ),
+            CrossAttnDownBlock2D(
+                in_channels=self.block_out_channels[1],
+                out_channels=self.block_out_channels[2],
+                num_attention_heads=self.num_attention_heads[2],
+                temb_channels=time_embed_dim,
+                num_layers=2,
+                transformer_layers_per_block=[1, 1],
+                add_downsample=True,
+            ),
+            DownBlock2D(
+                in_channels=self.block_out_channels[2],
+                out_channels=self.block_out_channels[3],
+                temb_channels=time_embed_dim,
+                num_layers=2,
+            ),
+        ])
+        self.middle_block = UNetMidBlock2DCrossAttn(
+            in_channels=self.block_out_channels[-1],
+            temb_channels=time_embed_dim,
+            num_attention_heads=self.num_attention_heads[-1],
+            num_layers=1,
+            transformer_layers_per_block=[1],
+        )
+        self.up_blocks = torch.nn.ModuleList([
+            UpBlock2D(
+                in_channels=self.block_out_channels[-2],
+                out_channels=self.block_out_channels[-1],
+                prev_output_channel=self.block_out_channels[-1],
+                temb_channels=time_embed_dim,
+            ),
+            CrossAttnUpBlock2D(
+                in_channels=self.block_out_channels[-3],
+                out_channels=self.block_out_channels[-2],
+                prev_output_channel=self.block_out_channels[-1],
+                temb_channels=time_embed_dim,
+                num_layers=3,
+                transformer_layers_per_block=[1, 1, 1],
+                num_attention_heads=self.num_attention_heads[-2],
+                add_upsample=True,
+            ),
+            CrossAttnUpBlock2D(
+                in_channels=self.block_out_channels[-4],
+                out_channels=self.block_out_channels[-3],
+                prev_output_channel=self.block_out_channels[-2],
+                temb_channels=time_embed_dim,
+                num_layers=3,
+                transformer_layers_per_block=[1, 1, 1],
+                num_attention_heads=self.num_attention_heads[-3],
+                add_upsample=True,
+            ),
+            CrossAttnUpBlock2D(
+                in_channels=self.block_out_channels[-4],
+                out_channels=self.block_out_channels[-4],
+                prev_output_channel=self.block_out_channels[-3],
+                temb_channels=time_embed_dim,
+                num_layers=3,
+                transformer_layers_per_block=[1, 1, 1],
+                num_attention_heads=self.num_attention_heads[-4],
+                add_upsample=False,
+            ),
+        ])
 
         self.conv_norm_out = torch.nn.GroupNorm(
             num_channels=self.block_out_channels[0],
@@ -75,7 +153,8 @@ class CondtionalUNet(torch.nn.Module):
         for downsample_block in self.down_blocks:
             if downsample_block.has_cross_attention:
                 sample, res_samples = downsample_block(
-                    hidden_states=sample, temb=emb,
+                    hidden_states=sample,
+                    temb=emb,
                     encoder_hidden_states=encoder_hidden_states)
             else:
                 sample, res_samples = downsample_block(
@@ -145,6 +224,9 @@ if __name__ == "__main__":
     # condition = torch.randn(bsz, 77, 768, device=device)
     condition = torch.randn(bsz, 77, 1024, device=device)
 
+    myunet = CondtionalUNet().to(device)
+    out = myunet(latents, timestep, condition)[0]
+
     # with get_accelerator().device(0):
     #     flops, macs, params = get_model_profile(
     #         unet,
@@ -155,17 +237,19 @@ if __name__ == "__main__":
     #         output_file='unet21_flops.txt',
     #     )
 
-    out = unet(latents, timestep, condition, return_dict=False)
+    gold = unet(latents, timestep, condition, return_dict=False)[0]
     # print(out[0].size())
+
+    print((gold-out).abs().max().item())
 
     # att = unet.attn_processors
     # for k in att:
     #     print(k, att[k].__class__.__name__)
 
     # print(unet)
-    for param in unet.named_parameters():
-        print(param[0], param[1].size())
-        break
+    # for param in unet.named_parameters():
+    #     print(param[0], param[1].size())
+    #     break
 
     # for mod in unet.named_modules():
     #     # print(mod[0], mod[1].__class__.__name__)
