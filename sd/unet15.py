@@ -225,6 +225,7 @@ if __name__ == "__main__":
     condition = torch.randn(bsz, 77, 1024, device=device)
 
     myunet = CondtionalUNet().to(device)
+    myunet.load_state_dict(unet.state_dict())
     out = myunet(latents, timestep, condition)[0]
 
     # with get_accelerator().device(0):
