@@ -1,9 +1,6 @@
 from typing import Tuple
 
-import diffusers
 import torch
-from diffusers import UNet2DConditionModel
-from transformers import PretrainedConfig
 
 from sd.blocks import (CrossAttnDownBlock2D, CrossAttnUpBlock2D, DownBlock2D,
                        UNetMidBlock2DCrossAttn, UpBlock2D)
@@ -193,27 +190,3 @@ class CondtionalUNet(torch.nn.Module):
         sample = self.conv_out(sample)
 
         return (sample,)
-
-
-if __name__ == "__main__":
-    checkpoint = 'stabilityai/stable-diffusion-2-1'
-    config = PretrainedConfig.get_config_dict(checkpoint, subfolder='unet')[0]
-
-    device = 'cuda'
-    unet = UNet2DConditionModel.from_pretrained(
-        checkpoint, subfolder="unet",
-    ).to(device)
-
-    myunet = CondtionalUNet().to(device)
-    myunet.load_state_dict(unet.state_dict())
-
-    bsz = 4
-    latents = torch.randn(bsz, 4, 64, 64, device=device)
-    timestep = torch.randint(0, 1000, (bsz, ), device=device)
-    condition = torch.randn(bsz, 77, 1024, device=device)
-
-    out = myunet(latents, timestep, condition)[0]
-
-    gold = unet(latents, timestep, condition, return_dict=False)[0]
-
-    print((gold-out).abs().max().item())
