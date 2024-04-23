@@ -120,10 +120,10 @@ class BasicTransformerBlock(nn.Module):
         dim: int,
         num_attention_heads: int,
         attention_head_dim: int,
+        cross_attention_dim: int,
     ):
         super().__init__()
         dropout = 0.0
-        cross_attention_dim: int = 1024  # Optional[int] = None,
         activation_fn: str = "geglu"
         attention_bias: bool = False
         only_cross_attention: bool = False
@@ -201,6 +201,7 @@ class Transformer2DModel(torch.nn.Module):
         self,
         num_attention_heads: int,
         in_channels: int,
+        cross_attention_dim: int,
         num_layers: int = 1,
     ):
         super().__init__()
@@ -224,6 +225,7 @@ class Transformer2DModel(torch.nn.Module):
                     inner_dim,
                     num_attention_heads,
                     attention_head_dim,
+                    cross_attention_dim=cross_attention_dim,
                 )
                 for d in range(num_layers)
             ]

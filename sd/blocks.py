@@ -199,7 +199,8 @@ class CrossAttnDownBlock2D(nn.Module):
         temb_channels: int,
         num_layers: int,
         transformer_layers_per_block: Tuple[int],
-        num_attention_heads: int = 1,
+        cross_attention_dim: int,
+        num_attention_heads: int,
         add_downsample: bool = True,
     ):
         super().__init__()
@@ -224,6 +225,7 @@ class CrossAttnDownBlock2D(nn.Module):
                 Transformer2DModel(
                     num_attention_heads,
                     in_channels=out_channels,
+                    cross_attention_dim=cross_attention_dim,
                     num_layers=transformer_layers_per_block[i],
                 )
             )
@@ -374,6 +376,7 @@ class CrossAttnUpBlock2D(nn.Module):
         temb_channels: int,
         num_layers: int,
         transformer_layers_per_block: Tuple[int],
+        cross_attention_dim: int,
         num_attention_heads: int,
         add_upsample: bool,
     ):
@@ -401,6 +404,7 @@ class CrossAttnUpBlock2D(nn.Module):
                 Transformer2DModel(
                     num_attention_heads,
                     in_channels=out_channels,
+                    cross_attention_dim=cross_attention_dim,
                     num_layers=transformer_layers_per_block[i],
                 )
             )
@@ -448,7 +452,8 @@ class UNetMidBlock2DCrossAttn(nn.Module):
         temb_channels: int,
         num_layers: int,
         transformer_layers_per_block: Tuple[int],
-        num_attention_heads: int = 1,
+        cross_attention_dim: int,
+        num_attention_heads: int,
     ):
         super().__init__()
         self.has_cross_attention = True
@@ -467,6 +472,7 @@ class UNetMidBlock2DCrossAttn(nn.Module):
                 Transformer2DModel(
                     num_attention_heads,
                     in_channels=in_channels,
+                    cross_attention_dim=cross_attention_dim,
                     num_layers=transformer_layers_per_block[i],
                 )
             )

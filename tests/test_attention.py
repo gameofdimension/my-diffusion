@@ -7,7 +7,7 @@ from diffusers.models.attention import Attention as GoldAttention
 from sd.transformer import Attention
 
 
-class ModelTest(unittest.TestCase):
+class Unet21ModelTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):

@@ -34,6 +34,7 @@ class ModelTest(unittest.TestCase):
                     dim=dim,
                     num_attention_heads=num_attention_heads,
                     attention_head_dim=attention_head_dim,
+                    cross_attention_dim=1024,
                 )
 
                 block.load_state_dict(gold_block.state_dict())
@@ -61,6 +62,7 @@ class ModelTest(unittest.TestCase):
                 transformer = Transformer2DModel(
                     in_channels=gold_transformer.in_channels,
                     num_attention_heads=num_attention_heads,
+                    cross_attention_dim=1024,
                     num_layers=1,
                 )
 
