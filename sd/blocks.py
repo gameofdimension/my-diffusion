@@ -225,6 +225,7 @@ class CrossAttnDownBlock2D(nn.Module):
                 Transformer2DModel(
                     num_attention_heads,
                     in_channels=out_channels,
+                    attention_head_dim=out_channels//num_attention_heads,
                     cross_attention_dim=cross_attention_dim,
                     num_layers=transformer_layers_per_block[i],
                 )
@@ -404,6 +405,7 @@ class CrossAttnUpBlock2D(nn.Module):
                 Transformer2DModel(
                     num_attention_heads,
                     in_channels=out_channels,
+                    attention_head_dim=out_channels//num_attention_heads,
                     cross_attention_dim=cross_attention_dim,
                     num_layers=transformer_layers_per_block[i],
                 )
@@ -472,6 +474,7 @@ class UNetMidBlock2DCrossAttn(nn.Module):
                 Transformer2DModel(
                     num_attention_heads,
                     in_channels=in_channels,
+                    attention_head_dim=in_channels//num_attention_heads,
                     cross_attention_dim=cross_attention_dim,
                     num_layers=transformer_layers_per_block[i],
                 )

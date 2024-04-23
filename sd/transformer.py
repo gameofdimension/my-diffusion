@@ -200,6 +200,7 @@ class Transformer2DModel(torch.nn.Module):
     def __init__(
         self,
         num_attention_heads: int,
+        attention_head_dim: int,
         in_channels: int,
         cross_attention_dim: int,
         num_layers: int = 1,
@@ -207,7 +208,6 @@ class Transformer2DModel(torch.nn.Module):
         super().__init__()
         norm_num_groups: int = 32
         use_linear_projection: bool = True
-        attention_head_dim: int = 64
         out_channels = in_channels
 
         assert norm_num_groups == 32

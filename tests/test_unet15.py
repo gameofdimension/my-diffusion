@@ -9,7 +9,7 @@ from sd.unet15 import CondtionalUNet15
 class ModelTest(unittest.TestCase):
 
     def test_upsample(self):
-        checkpoint = 'stabilityai/stable-diffusion-2-1'
+        checkpoint = 'runwayml/stable-diffusion-v1-5'
 
         device = 'cuda'
         unet = UNet2DConditionModel.from_pretrained(
@@ -22,7 +22,7 @@ class ModelTest(unittest.TestCase):
         bsz = 4
         latents = torch.randn(bsz, 4, 64, 64, device=device)
         timestep = torch.randint(0, 1000, (bsz, ), device=device)
-        condition = torch.randn(bsz, 77, 1024, device=device)
+        condition = torch.randn(bsz, 77, 768, device=device)
 
         out = myunet(latents, timestep, condition)[0]
         gold = unet(latents, timestep, condition, return_dict=False)[0]

@@ -62,6 +62,7 @@ class ModelTest(unittest.TestCase):
                 transformer = Transformer2DModel(
                     in_channels=gold_transformer.in_channels,
                     num_attention_heads=num_attention_heads,
+                    attention_head_dim=gold_transformer.in_channels // num_attention_heads,  # noqa
                     cross_attention_dim=1024,
                     num_layers=1,
                 )
