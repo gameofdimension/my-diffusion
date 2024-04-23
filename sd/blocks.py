@@ -201,6 +201,7 @@ class CrossAttnDownBlock2D(nn.Module):
         transformer_layers_per_block: Tuple[int],
         cross_attention_dim: int,
         num_attention_heads: int,
+        use_linear_projection: bool,
         add_downsample: bool = True,
     ):
         super().__init__()
@@ -228,6 +229,7 @@ class CrossAttnDownBlock2D(nn.Module):
                     attention_head_dim=out_channels//num_attention_heads,
                     cross_attention_dim=cross_attention_dim,
                     num_layers=transformer_layers_per_block[i],
+                    use_linear_projection=use_linear_projection,
                 )
             )
         self.attentions = nn.ModuleList(attentions)
@@ -379,6 +381,7 @@ class CrossAttnUpBlock2D(nn.Module):
         transformer_layers_per_block: Tuple[int],
         cross_attention_dim: int,
         num_attention_heads: int,
+        use_linear_projection: bool,
         add_upsample: bool,
     ):
         super().__init__()
@@ -408,6 +411,7 @@ class CrossAttnUpBlock2D(nn.Module):
                     attention_head_dim=out_channels//num_attention_heads,
                     cross_attention_dim=cross_attention_dim,
                     num_layers=transformer_layers_per_block[i],
+                    use_linear_projection=use_linear_projection,
                 )
             )
         self.attentions = nn.ModuleList(attentions)
@@ -456,6 +460,7 @@ class UNetMidBlock2DCrossAttn(nn.Module):
         transformer_layers_per_block: Tuple[int],
         cross_attention_dim: int,
         num_attention_heads: int,
+        use_linear_projection: bool,
     ):
         super().__init__()
         self.has_cross_attention = True
@@ -477,6 +482,7 @@ class UNetMidBlock2DCrossAttn(nn.Module):
                     attention_head_dim=in_channels//num_attention_heads,
                     cross_attention_dim=cross_attention_dim,
                     num_layers=transformer_layers_per_block[i],
+                    use_linear_projection=use_linear_projection,
                 )
             )
             resnets.append(

@@ -203,22 +203,25 @@ class Transformer2DModel(torch.nn.Module):
         attention_head_dim: int,
         in_channels: int,
         cross_attention_dim: int,
+        use_linear_projection: bool,
         num_layers: int = 1,
     ):
         super().__init__()
         norm_num_groups: int = 32
-        use_linear_projection: bool = True
         out_channels = in_channels
 
         assert norm_num_groups == 32
-        assert use_linear_projection
         self.use_linear_projection = use_linear_projection
         inner_dim = num_attention_heads * attention_head_dim
         self.in_channels = in_channels
         self.norm = torch.nn.GroupNorm(
             num_groups=norm_num_groups,
             num_channels=in_channels, eps=1e-6, affine=True)
-        self.proj_in = nn.Linear(in_channels, inner_dim)
+        if use_linear_projection:
+            self.proj_in = nn.Linear(in_channels, inner_dim)
+        else:
+            self.proj_in = nn.Conv2d(
+                in_channels, inner_dim, kernel_size=1, stride=1, padding=0)
         self.transformer_blocks = nn.ModuleList(
             [
                 BasicTransformerBlock(
@@ -232,7 +235,11 @@ class Transformer2DModel(torch.nn.Module):
         )
 
         self.out_channels = out_channels
-        self.proj_out = nn.Linear(inner_dim, in_channels)
+        if use_linear_projection:
+            self.proj_out = nn.Linear(inner_dim, in_channels)
+        else:
+            self.proj_out = nn.Conv2d(
+                inner_dim, in_channels, kernel_size=1, stride=1, padding=0)
 
     def forward(
         self,
@@ -243,10 +250,17 @@ class Transformer2DModel(torch.nn.Module):
         residual = hidden_states
 
         hidden_states = self.norm(hidden_states)
-        inner_dim = hidden_states.shape[1]
-        hidden_states = hidden_states.permute(
-            0, 2, 3, 1).reshape(batch, height * width, inner_dim)
-        hidden_states = self.proj_in(hidden_states)
+
+        if self.use_linear_projection:
+            inner_dim = hidden_states.shape[1]
+            hidden_states = hidden_states.permute(
+                0, 2, 3, 1).reshape(batch, height * width, inner_dim)
+            hidden_states = self.proj_in(hidden_states)
+        else:
+            hidden_states = self.proj_in(hidden_states)
+            inner_dim = hidden_states.shape[1]
+            hidden_states = hidden_states.permute(
+                0, 2, 3, 1).reshape(batch, height * width, inner_dim)
 
         for block in self.transformer_blocks:
             hidden_states = block(
@@ -254,9 +268,16 @@ class Transformer2DModel(torch.nn.Module):
                 encoder_hidden_states=encoder_hidden_states,
             )
 
-        hidden_states = self.proj_out(hidden_states)
-        hidden_states = hidden_states.reshape(
-            batch, height, width, inner_dim).permute(0, 3, 1, 2).contiguous()
+        if self.use_linear_projection:
+            hidden_states = self.proj_out(hidden_states)
+            hidden_states = hidden_states.reshape(
+                batch, height, width, inner_dim
+            ).permute(0, 3, 1, 2).contiguous()
+        else:
+            hidden_states = hidden_states.reshape(
+                batch, height, width, inner_dim
+            ).permute(0, 3, 1, 2).contiguous()
+            hidden_states = self.proj_out(hidden_states)
 
         output = hidden_states + residual
         return (output,)

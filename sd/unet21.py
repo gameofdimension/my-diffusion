@@ -21,6 +21,7 @@ class CondtionalUNet21(torch.nn.Module):
     num_attention_heads = [5, 10, 20, 20]
     num_upsamplers = 3
     cross_attention_dim = 1024
+    use_linear_projection: bool = True
 
     def __init__(self) -> None:
         super().__init__()
@@ -48,6 +49,7 @@ class CondtionalUNet21(torch.nn.Module):
                 num_layers=2,
                 transformer_layers_per_block=[1, 1],
                 cross_attention_dim=self.cross_attention_dim,
+                use_linear_projection=self.use_linear_projection,
                 add_downsample=True,
             ),
             CrossAttnDownBlock2D(
@@ -58,6 +60,7 @@ class CondtionalUNet21(torch.nn.Module):
                 num_layers=2,
                 transformer_layers_per_block=[1, 1],
                 cross_attention_dim=self.cross_attention_dim,
+                use_linear_projection=self.use_linear_projection,
                 add_downsample=True,
 
             ),
@@ -69,6 +72,7 @@ class CondtionalUNet21(torch.nn.Module):
                 num_layers=2,
                 transformer_layers_per_block=[1, 1],
                 cross_attention_dim=self.cross_attention_dim,
+                use_linear_projection=self.use_linear_projection,
                 add_downsample=True,
             ),
             DownBlock2D(
@@ -85,6 +89,7 @@ class CondtionalUNet21(torch.nn.Module):
             num_layers=1,
             transformer_layers_per_block=[1],
             cross_attention_dim=self.cross_attention_dim,
+            use_linear_projection=self.use_linear_projection,
         )
         self.up_blocks = torch.nn.ModuleList([
             UpBlock2D(
@@ -102,6 +107,7 @@ class CondtionalUNet21(torch.nn.Module):
                 transformer_layers_per_block=[1, 1, 1],
                 cross_attention_dim=self.cross_attention_dim,
                 num_attention_heads=self.num_attention_heads[-2],
+                use_linear_projection=self.use_linear_projection,
                 add_upsample=True,
             ),
             CrossAttnUpBlock2D(
@@ -113,6 +119,7 @@ class CondtionalUNet21(torch.nn.Module):
                 transformer_layers_per_block=[1, 1, 1],
                 cross_attention_dim=self.cross_attention_dim,
                 num_attention_heads=self.num_attention_heads[-3],
+                use_linear_projection=self.use_linear_projection,
                 add_upsample=True,
             ),
             CrossAttnUpBlock2D(
@@ -124,6 +131,7 @@ class CondtionalUNet21(torch.nn.Module):
                 transformer_layers_per_block=[1, 1, 1],
                 cross_attention_dim=self.cross_attention_dim,
                 num_attention_heads=self.num_attention_heads[-4],
+                use_linear_projection=self.use_linear_projection,
                 add_upsample=False,
             ),
         ])
