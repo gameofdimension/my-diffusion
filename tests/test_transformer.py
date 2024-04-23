@@ -64,6 +64,7 @@ class ModelTest(unittest.TestCase):
                     num_attention_heads=num_attention_heads,
                     attention_head_dim=gold_transformer.in_channels // num_attention_heads,  # noqa
                     cross_attention_dim=1024,
+                    use_linear_projection=True,
                     num_layers=1,
                 )
 

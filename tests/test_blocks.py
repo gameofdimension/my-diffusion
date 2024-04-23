@@ -116,6 +116,8 @@ class ModelTest(unittest.TestCase):
                     num_layers=2,
                     transformer_layers_per_block=[1, 1],
                     num_attention_heads=num_attention_heads,
+                    cross_attention_dim=1024,
+                    use_linear_projection=True,
                     add_downsample=gold_block.downsamplers is not None,
                 )
                 block.load_state_dict(gold_block.state_dict())

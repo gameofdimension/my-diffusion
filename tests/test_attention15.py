@@ -25,9 +25,6 @@ class Unet15ModelTest(unittest.TestCase):
         for mod in self.unet.named_modules():
             if isinstance(mod[1], GoldAttention):
                 gold_attn = mod[1]
-
-                for param in gold_attn.named_parameters():
-                    print(param[0], param[1].shape)
                 query_dim = gold_attn.query_dim
                 cross_attention_dim = None
                 if mod[0].endswith('attn1'):
