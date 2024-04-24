@@ -1,7 +1,6 @@
 from typing import Tuple
 
 import torch
-from diffusers import UNet2DConditionModel
 
 from sd.blocks import (CrossAttnDownBlock2D, CrossAttnUpBlock2D, DownBlock2D,
                        UNetMidBlock2DCrossAttn, UpBlock2D)
@@ -207,19 +206,3 @@ class CondtionalUNet15(torch.nn.Module):
         sample = self.conv_out(sample)
 
         return (sample,)
-
-
-if __name__ == "__main__":
-    device = 'cuda'
-
-    checkpoint = 'runwayml/stable-diffusion-v1-5'
-    unet = UNet2DConditionModel.from_pretrained(
-        checkpoint, subfolder="unet",
-    ).to(device)
-
-    bsz = 4
-    latents = torch.randn(bsz, 4, 64, 64, device=device)
-    timestep = torch.randint(0, 1000, (bsz, ), device=device)
-    condition = torch.randn(bsz, 77, 768, device=device)
-
-    gold = unet(latents, timestep, condition, return_dict=False)[0]
