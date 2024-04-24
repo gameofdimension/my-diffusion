@@ -50,7 +50,6 @@ class ModelTest(unittest.TestCase):
                     hidden_states=hidden_states,
                     encoder_hidden_states=encoder_hidden_states)
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6
 
     def test_transformer(self):
@@ -82,5 +81,4 @@ class ModelTest(unittest.TestCase):
                     hidden_states=hidden_states,
                     encoder_hidden_states=encoder_hidden_states)[0]
                 delta = (gold_output - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6

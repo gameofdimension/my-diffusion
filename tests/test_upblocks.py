@@ -43,7 +43,6 @@ class ModelTest(unittest.TestCase):
                 output = block(hidden_states)
 
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6
 
     def test_downblock(self):
@@ -74,7 +73,6 @@ class ModelTest(unittest.TestCase):
                     res_hidden_states_tuple=res_hidden_states_tuple)
 
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6
 
     def test_crossattnupblock(self):
@@ -151,7 +149,6 @@ class ModelTest(unittest.TestCase):
                     res_hidden_states_tuple=res_hidden_states_tuple,
                 )
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6
 
     def test_middleblock(self):
@@ -185,5 +182,4 @@ class ModelTest(unittest.TestCase):
                     encoder_hidden_states=encoder_hidden_states,
                 )
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6

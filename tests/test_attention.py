@@ -54,5 +54,4 @@ class Unet21ModelTest(unittest.TestCase):
                     gold = gold_attn(data, cross_data)
 
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6

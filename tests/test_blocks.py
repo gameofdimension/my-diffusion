@@ -45,7 +45,6 @@ class ModelTest(unittest.TestCase):
                 output = block(hidden_states)
 
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6
 
     def test_resnetblock(self):
@@ -65,7 +64,6 @@ class ModelTest(unittest.TestCase):
                 output = resnet(data, temb=temb)
 
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6
 
     def test_downblock(self):
@@ -87,7 +85,6 @@ class ModelTest(unittest.TestCase):
                 gold = gold_block(hidden_states=data, temb=temb)[0]
 
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6
 
     def test_crossattnblock(self):
@@ -134,5 +131,4 @@ class ModelTest(unittest.TestCase):
                     encoder_hidden_states=encoder_hidden_states)[0]
 
                 delta = (gold - output).abs().max().item()
-                print(mod[0], delta)
                 assert delta < 1e-6

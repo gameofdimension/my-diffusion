@@ -28,5 +28,4 @@ class ModelTest(unittest.TestCase):
             out = myunet(latents, timestep, condition)[0]
             gold = unet(latents, timestep, condition, return_dict=False)[0]
             delta = (gold-out).abs().max().item()
-            print(delta)
             assert delta < 1e-6
