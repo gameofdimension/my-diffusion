@@ -80,6 +80,7 @@ class CondtionalUNet21(torch.nn.Module):
                 out_channels=self.block_out_channels[3],
                 temb_channels=time_embed_dim,
                 num_layers=2,
+                add_downsample=False,
             ),
         ])
         self.mid_block = UNetMidBlock2DCrossAttn(
@@ -97,6 +98,7 @@ class CondtionalUNet21(torch.nn.Module):
                 out_channels=self.block_out_channels[-1],
                 prev_output_channel=self.block_out_channels[-1],
                 temb_channels=time_embed_dim,
+                add_upsample=True,
             ),
             CrossAttnUpBlock2D(
                 in_channels=self.block_out_channels[-3],

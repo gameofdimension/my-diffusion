@@ -8,7 +8,7 @@ from sd.unet21 import CondtionalUNet21
 
 class ModelTest(unittest.TestCase):
 
-    def test_upsample(self):
+    def test_unet(self):
         checkpoint = 'stabilityai/stable-diffusion-2-1'
 
         device = 'cuda'

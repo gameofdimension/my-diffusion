@@ -1,16 +1,17 @@
 from typing import Tuple
 
 import torch
+from diffusers import UNet2DConditionModel
 
 from sd.blocks import (CrossAttnDownBlock2D, CrossAttnUpBlock2D, DownBlock2D,
                        UNetMidBlock2DCrossAttn, UpBlock2D)
 from sd.time_embed import TimestepEmbedding, Timesteps
 
 
-class CondtionalUNet15(torch.nn.Module):
+class CondtionalUNetXL(torch.nn.Module):
     in_channels: int = 4
     out_channels: int = 4
-    block_out_channels: Tuple[int] = (320, 640, 1280, 1280)
+    block_out_channels: Tuple[int] = (320, 640, 1280)
     conv_in_kernel: int = 3
     conv_out_kernel: int = 3
     flip_sin_to_cos: bool = True
@@ -18,10 +19,14 @@ class CondtionalUNet15(torch.nn.Module):
     act_fn = 'silu'
     norm_num_groups: int = 32
     norm_eps: float = 1e-5
-    num_attention_heads = 8
-    num_upsamplers = 3
-    cross_attention_dim = 768
-    use_linear_projection = False
+    num_attention_heads = [5, 10, 20]
+    num_upsamplers = 2
+    cross_attention_dim = 2048
+    use_linear_projection: bool = True
+
+    addition_embed_type = "text_time"
+    addition_time_embed_dim: int = 256
+    projection_class_embeddings_input_dim: int = 2816
 
     def __init__(self) -> None:
         super().__init__()
@@ -40,25 +45,29 @@ class CondtionalUNet15(torch.nn.Module):
         self.time_embedding = TimestepEmbedding(
             timestep_input_dim, time_embed_dim)
 
+        assert self.addition_embed_type == "text_time"
+        self.add_time_proj = Timesteps(
+            self.addition_time_embed_dim,
+            self.flip_sin_to_cos, self.freq_shift)
+        self.add_embedding = TimestepEmbedding(
+            self.projection_class_embeddings_input_dim,
+            time_embed_dim)
+
         self.down_blocks = torch.nn.ModuleList([
-            CrossAttnDownBlock2D(
+            DownBlock2D(
                 in_channels=self.block_out_channels[0],
                 out_channels=self.block_out_channels[0],
-                num_attention_heads=self.num_attention_heads,
                 temb_channels=time_embed_dim,
                 num_layers=2,
-                transformer_layers_per_block=[1, 1],
-                cross_attention_dim=self.cross_attention_dim,
-                use_linear_projection=self.use_linear_projection,
                 add_downsample=True,
             ),
             CrossAttnDownBlock2D(
                 in_channels=self.block_out_channels[0],
                 out_channels=self.block_out_channels[1],
-                num_attention_heads=self.num_attention_heads,
+                num_attention_heads=self.num_attention_heads[1],
                 temb_channels=time_embed_dim,
                 num_layers=2,
-                transformer_layers_per_block=[1, 1],
+                transformer_layers_per_block=[2, 2],
                 cross_attention_dim=self.cross_attention_dim,
                 use_linear_projection=self.use_linear_projection,
                 add_downsample=True,
@@ -67,37 +76,35 @@ class CondtionalUNet15(torch.nn.Module):
             CrossAttnDownBlock2D(
                 in_channels=self.block_out_channels[1],
                 out_channels=self.block_out_channels[2],
-                num_attention_heads=self.num_attention_heads,
+                num_attention_heads=self.num_attention_heads[2],
                 temb_channels=time_embed_dim,
                 num_layers=2,
-                transformer_layers_per_block=[1, 1],
+                transformer_layers_per_block=[10, 10],
                 cross_attention_dim=self.cross_attention_dim,
                 use_linear_projection=self.use_linear_projection,
-                add_downsample=True,
-            ),
-            DownBlock2D(
-                in_channels=self.block_out_channels[2],
-                out_channels=self.block_out_channels[3],
-                temb_channels=time_embed_dim,
-                num_layers=2,
                 add_downsample=False,
             ),
         ])
         self.mid_block = UNetMidBlock2DCrossAttn(
             in_channels=self.block_out_channels[-1],
             temb_channels=time_embed_dim,
-            num_attention_heads=self.num_attention_heads,
+            num_attention_heads=self.num_attention_heads[-1],
             num_layers=1,
-            transformer_layers_per_block=[1],
+            transformer_layers_per_block=[10],
             cross_attention_dim=self.cross_attention_dim,
             use_linear_projection=self.use_linear_projection,
         )
         self.up_blocks = torch.nn.ModuleList([
-            UpBlock2D(
+            CrossAttnUpBlock2D(
                 in_channels=self.block_out_channels[-2],
                 out_channels=self.block_out_channels[-1],
                 prev_output_channel=self.block_out_channels[-1],
                 temb_channels=time_embed_dim,
+                num_layers=3,
+                transformer_layers_per_block=[10, 10, 10],
+                cross_attention_dim=self.cross_attention_dim,
+                num_attention_heads=self.num_attention_heads[-1],
+                use_linear_projection=self.use_linear_projection,
                 add_upsample=True,
             ),
             CrossAttnUpBlock2D(
@@ -106,34 +113,17 @@ class CondtionalUNet15(torch.nn.Module):
                 prev_output_channel=self.block_out_channels[-1],
                 temb_channels=time_embed_dim,
                 num_layers=3,
-                transformer_layers_per_block=[1, 1, 1],
-                num_attention_heads=self.num_attention_heads,
+                transformer_layers_per_block=[2, 2, 2],
                 cross_attention_dim=self.cross_attention_dim,
+                num_attention_heads=self.num_attention_heads[-2],
                 use_linear_projection=self.use_linear_projection,
                 add_upsample=True,
             ),
-            CrossAttnUpBlock2D(
-                in_channels=self.block_out_channels[-4],
+            UpBlock2D(
+                in_channels=self.block_out_channels[-3],
                 out_channels=self.block_out_channels[-3],
                 prev_output_channel=self.block_out_channels[-2],
                 temb_channels=time_embed_dim,
-                num_layers=3,
-                transformer_layers_per_block=[1, 1, 1],
-                num_attention_heads=self.num_attention_heads,
-                cross_attention_dim=self.cross_attention_dim,
-                use_linear_projection=self.use_linear_projection,
-                add_upsample=True,
-            ),
-            CrossAttnUpBlock2D(
-                in_channels=self.block_out_channels[-4],
-                out_channels=self.block_out_channels[-4],
-                prev_output_channel=self.block_out_channels[-3],
-                temb_channels=time_embed_dim,
-                num_layers=3,
-                transformer_layers_per_block=[1, 1, 1],
-                num_attention_heads=self.num_attention_heads,
-                cross_attention_dim=self.cross_attention_dim,
-                use_linear_projection=self.use_linear_projection,
                 add_upsample=False,
             ),
         ])
@@ -156,12 +146,24 @@ class CondtionalUNet15(torch.nn.Module):
         emb = self.time_embedding(t_emb)
         return emb
 
-    def forward(self, sample, timestep, encoder_hidden_states):
+    def get_aug_emb(self, time_ids, text_embeds, dtype):
+        time_embeds = self.add_time_proj(time_ids.flatten())
+        time_embeds = time_embeds.reshape((text_embeds.shape[0], -1))
+        add_embeds = torch.concat([text_embeds, time_embeds], dim=-1)
+        add_embeds = add_embeds.to(dtype)
+        aug_emb = self.add_embedding(add_embeds)
+        return aug_emb
+
+    def forward(
+            self, sample, timestep, encoder_hidden_states,
+            time_ids, text_embeds):
         default_overall_up_factor = 2**self.num_upsamplers
         assert sample.size(-1) % default_overall_up_factor == 0
         assert sample.size(-2) % default_overall_up_factor == 0
 
         emb = self.embedding_time(sample.dtype, timestep)
+        emb = emb+self.get_aug_emb(time_ids, text_embeds, emb.dtype)
+
         sample = self.conv_in(sample)
 
         down_block_res_samples = (sample,)

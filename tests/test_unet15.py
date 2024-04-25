@@ -8,7 +8,7 @@ from sd.unet15 import CondtionalUNet15
 
 class ModelTest(unittest.TestCase):
 
-    def test_upsample(self):
+    def test_unet(self):
         checkpoint = 'runwayml/stable-diffusion-v1-5'
 
         device = 'cuda'

@@ -45,7 +45,7 @@ class ModelTest(unittest.TestCase):
                 delta = (gold - output).abs().max().item()
                 assert delta < 1e-6
 
-    def test_downblock(self):
+    def test_uplock(self):
         for mod in self.unet.named_modules():
             if isinstance(mod[1], GoldUpBlock2D):
                 gold_block = mod[1]
@@ -55,6 +55,7 @@ class ModelTest(unittest.TestCase):
                     out_channels=channels,
                     prev_output_channel=channels,
                     temb_channels=channels,
+                    add_upsample=True,
                 )
                 block.load_state_dict(gold_block.state_dict())
 

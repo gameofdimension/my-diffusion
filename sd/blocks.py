@@ -135,12 +135,12 @@ class DownBlock2D(nn.Module):
         in_channels: int,
         out_channels: int,
         temb_channels: int,
-        num_layers: int = 1,
+        num_layers: int,
+        add_downsample: bool,
     ):
         super().__init__()
         dropout: float = 0.0
         resnet_groups: int = 32
-        add_downsample: bool = False
         downsample_padding: int = 1
         self.has_cross_attention = False
 
@@ -316,12 +316,12 @@ class UpBlock2D(nn.Module):
         prev_output_channel: int,
         out_channels: int,
         temb_channels: int,
+        add_upsample: bool,
     ):
         super().__init__()
         dropout: float = 0.0
         num_layers: int = 3
         resnet_groups: int = 32
-        add_upsample: bool = True
         self.has_cross_attention = False
 
         resnets = []
