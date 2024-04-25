@@ -1,7 +1,6 @@
 from typing import Tuple
 
 import torch
-from diffusers import UNet2DConditionModel
 
 from sd.blocks import (CrossAttnDownBlock2D, CrossAttnUpBlock2D, DownBlock2D,
                        UNetMidBlock2DCrossAttn, UpBlock2D)
