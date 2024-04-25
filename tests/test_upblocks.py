@@ -55,6 +55,7 @@ class ModelTest(unittest.TestCase):
                     out_channels=channels,
                     prev_output_channel=channels,
                     temb_channels=channels,
+                    num_layers=3,
                     add_upsample=True,
                 )
                 block.load_state_dict(gold_block.state_dict())

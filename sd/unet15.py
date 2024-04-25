@@ -22,6 +22,7 @@ class CondtionalUNet15(torch.nn.Module):
     num_upsamplers = 3
     cross_attention_dim = 768
     use_linear_projection = False
+    layers_per_block: int = 2
 
     def __init__(self) -> None:
         super().__init__()
@@ -46,7 +47,7 @@ class CondtionalUNet15(torch.nn.Module):
                 out_channels=self.block_out_channels[0],
                 num_attention_heads=self.num_attention_heads,
                 temb_channels=time_embed_dim,
-                num_layers=2,
+                num_layers=self.layers_per_block,
                 transformer_layers_per_block=[1, 1],
                 cross_attention_dim=self.cross_attention_dim,
                 use_linear_projection=self.use_linear_projection,
@@ -57,7 +58,7 @@ class CondtionalUNet15(torch.nn.Module):
                 out_channels=self.block_out_channels[1],
                 num_attention_heads=self.num_attention_heads,
                 temb_channels=time_embed_dim,
-                num_layers=2,
+                num_layers=self.layers_per_block,
                 transformer_layers_per_block=[1, 1],
                 cross_attention_dim=self.cross_attention_dim,
                 use_linear_projection=self.use_linear_projection,
@@ -69,7 +70,7 @@ class CondtionalUNet15(torch.nn.Module):
                 out_channels=self.block_out_channels[2],
                 num_attention_heads=self.num_attention_heads,
                 temb_channels=time_embed_dim,
-                num_layers=2,
+                num_layers=self.layers_per_block,
                 transformer_layers_per_block=[1, 1],
                 cross_attention_dim=self.cross_attention_dim,
                 use_linear_projection=self.use_linear_projection,
@@ -79,7 +80,7 @@ class CondtionalUNet15(torch.nn.Module):
                 in_channels=self.block_out_channels[2],
                 out_channels=self.block_out_channels[3],
                 temb_channels=time_embed_dim,
-                num_layers=2,
+                num_layers=self.layers_per_block,
                 add_downsample=False,
             ),
         ])
@@ -98,6 +99,7 @@ class CondtionalUNet15(torch.nn.Module):
                 out_channels=self.block_out_channels[-1],
                 prev_output_channel=self.block_out_channels[-1],
                 temb_channels=time_embed_dim,
+                num_layers=self.layers_per_block+1,
                 add_upsample=True,
             ),
             CrossAttnUpBlock2D(
@@ -105,7 +107,7 @@ class CondtionalUNet15(torch.nn.Module):
                 out_channels=self.block_out_channels[-2],
                 prev_output_channel=self.block_out_channels[-1],
                 temb_channels=time_embed_dim,
-                num_layers=3,
+                num_layers=self.layers_per_block+1,
                 transformer_layers_per_block=[1, 1, 1],
                 num_attention_heads=self.num_attention_heads,
                 cross_attention_dim=self.cross_attention_dim,
@@ -117,7 +119,7 @@ class CondtionalUNet15(torch.nn.Module):
                 out_channels=self.block_out_channels[-3],
                 prev_output_channel=self.block_out_channels[-2],
                 temb_channels=time_embed_dim,
-                num_layers=3,
+                num_layers=self.layers_per_block+1,
                 transformer_layers_per_block=[1, 1, 1],
                 num_attention_heads=self.num_attention_heads,
                 cross_attention_dim=self.cross_attention_dim,
@@ -129,7 +131,7 @@ class CondtionalUNet15(torch.nn.Module):
                 out_channels=self.block_out_channels[-4],
                 prev_output_channel=self.block_out_channels[-3],
                 temb_channels=time_embed_dim,
-                num_layers=3,
+                num_layers=self.layers_per_block+1,
                 transformer_layers_per_block=[1, 1, 1],
                 num_attention_heads=self.num_attention_heads,
                 cross_attention_dim=self.cross_attention_dim,

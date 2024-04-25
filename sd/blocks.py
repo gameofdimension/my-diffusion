@@ -316,11 +316,11 @@ class UpBlock2D(nn.Module):
         prev_output_channel: int,
         out_channels: int,
         temb_channels: int,
+        num_layers: int,
         add_upsample: bool,
     ):
         super().__init__()
         dropout: float = 0.0
-        num_layers: int = 3
         resnet_groups: int = 32
         self.has_cross_attention = False
 

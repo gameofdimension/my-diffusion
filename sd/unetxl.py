@@ -22,6 +22,7 @@ class CondtionalUNetXL(torch.nn.Module):
     num_upsamplers = 2
     cross_attention_dim = 2048
     use_linear_projection: bool = True
+    layers_per_block: int = 2
 
     addition_embed_type = "text_time"
     addition_time_embed_dim: int = 256
@@ -57,7 +58,7 @@ class CondtionalUNetXL(torch.nn.Module):
                 in_channels=self.block_out_channels[0],
                 out_channels=self.block_out_channels[0],
                 temb_channels=time_embed_dim,
-                num_layers=2,
+                num_layers=self.layers_per_block,
                 add_downsample=True,
             ),
             CrossAttnDownBlock2D(
@@ -65,7 +66,7 @@ class CondtionalUNetXL(torch.nn.Module):
                 out_channels=self.block_out_channels[1],
                 num_attention_heads=self.num_attention_heads[1],
                 temb_channels=time_embed_dim,
-                num_layers=2,
+                num_layers=self.layers_per_block,
                 transformer_layers_per_block=[2, 2],
                 cross_attention_dim=self.cross_attention_dim,
                 use_linear_projection=self.use_linear_projection,
@@ -77,7 +78,7 @@ class CondtionalUNetXL(torch.nn.Module):
                 out_channels=self.block_out_channels[2],
                 num_attention_heads=self.num_attention_heads[2],
                 temb_channels=time_embed_dim,
-                num_layers=2,
+                num_layers=self.layers_per_block,
                 transformer_layers_per_block=[10, 10],
                 cross_attention_dim=self.cross_attention_dim,
                 use_linear_projection=self.use_linear_projection,
@@ -99,7 +100,7 @@ class CondtionalUNetXL(torch.nn.Module):
                 out_channels=self.block_out_channels[-1],
                 prev_output_channel=self.block_out_channels[-1],
                 temb_channels=time_embed_dim,
-                num_layers=3,
+                num_layers=self.layers_per_block+1,
                 transformer_layers_per_block=[10, 10, 10],
                 cross_attention_dim=self.cross_attention_dim,
                 num_attention_heads=self.num_attention_heads[-1],
@@ -111,7 +112,7 @@ class CondtionalUNetXL(torch.nn.Module):
                 out_channels=self.block_out_channels[-2],
                 prev_output_channel=self.block_out_channels[-1],
                 temb_channels=time_embed_dim,
-                num_layers=3,
+                num_layers=self.layers_per_block+1,
                 transformer_layers_per_block=[2, 2, 2],
                 cross_attention_dim=self.cross_attention_dim,
                 num_attention_heads=self.num_attention_heads[-2],
@@ -123,6 +124,7 @@ class CondtionalUNetXL(torch.nn.Module):
                 out_channels=self.block_out_channels[-3],
                 prev_output_channel=self.block_out_channels[-2],
                 temb_channels=time_embed_dim,
+                num_layers=self.layers_per_block+1,
                 add_upsample=False,
             ),
         ])
