@@ -198,7 +198,7 @@ class CrossAttnDownBlock2D(nn.Module):
         out_channels: int,
         temb_channels: int,
         num_layers: int,
-        transformer_layers_per_block: Tuple[int],
+        transformer_layers: int,
         cross_attention_dim: int,
         num_attention_heads: int,
         use_linear_projection: bool,
@@ -211,7 +211,6 @@ class CrossAttnDownBlock2D(nn.Module):
 
         self.has_cross_attention = True
         self.num_attention_heads = num_attention_heads
-        assert len(transformer_layers_per_block) == num_layers
 
         for i in range(num_layers):
             in_channels = in_channels if i == 0 else out_channels
@@ -228,7 +227,7 @@ class CrossAttnDownBlock2D(nn.Module):
                     in_channels=out_channels,
                     attention_head_dim=out_channels//num_attention_heads,
                     cross_attention_dim=cross_attention_dim,
-                    num_layers=transformer_layers_per_block[i],
+                    num_layers=transformer_layers,
                     use_linear_projection=use_linear_projection,
                 )
             )
@@ -378,7 +377,7 @@ class CrossAttnUpBlock2D(nn.Module):
         prev_output_channel: int,
         temb_channels: int,
         num_layers: int,
-        transformer_layers_per_block: Tuple[int],
+        transformer_layers: int,
         cross_attention_dim: int,
         num_attention_heads: int,
         use_linear_projection: bool,
@@ -390,7 +389,6 @@ class CrossAttnUpBlock2D(nn.Module):
 
         self.has_cross_attention = True
         self.num_attention_heads = num_attention_heads
-        assert len(transformer_layers_per_block) == num_layers
 
         for i in range(num_layers):
             res_skip_channels = in_channels if (
@@ -410,7 +408,7 @@ class CrossAttnUpBlock2D(nn.Module):
                     in_channels=out_channels,
                     attention_head_dim=out_channels//num_attention_heads,
                     cross_attention_dim=cross_attention_dim,
-                    num_layers=transformer_layers_per_block[i],
+                    num_layers=transformer_layers,
                     use_linear_projection=use_linear_projection,
                 )
             )
@@ -457,7 +455,7 @@ class UNetMidBlock2DCrossAttn(nn.Module):
         in_channels: int,
         temb_channels: int,
         num_layers: int,
-        transformer_layers_per_block: Tuple[int],
+        transformer_layers: int,
         cross_attention_dim: int,
         num_attention_heads: int,
         use_linear_projection: bool,
@@ -481,7 +479,7 @@ class UNetMidBlock2DCrossAttn(nn.Module):
                     in_channels=in_channels,
                     attention_head_dim=in_channels//num_attention_heads,
                     cross_attention_dim=cross_attention_dim,
-                    num_layers=transformer_layers_per_block[i],
+                    num_layers=transformer_layers,
                     use_linear_projection=use_linear_projection,
                 )
             )
