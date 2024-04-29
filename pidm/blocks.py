@@ -44,7 +44,6 @@ class ResBlock(torch.nn.Module):
     ) -> None:
         super().__init__()
         self.has_lateral = has_lateral
-        self.out_channels = out_channels
         layers = [
             torch.nn.GroupNorm(32, in_channels),
             torch.nn.SiLU(),
@@ -52,6 +51,7 @@ class ResBlock(torch.nn.Module):
         ]
         self.in_layers = nn.Sequential(*layers)
 
+        assert not (up and down)
         if up:
             self.h_upd = Upsample(in_channels)
             self.x_upd = Upsample(in_channels)
@@ -99,13 +99,8 @@ class ResBlock(torch.nn.Module):
         emb_out = emb_out.reshape(new_size)
 
         h = self.out_layers[0](h)
-        if emb_out.shape[1] == self.out_channels*2:
-            scale, shift = torch.chunk(emb_out, 2, dim=1)
-            h = h * (1 + scale)
-            h = h+shift
-        else:
-            scale = emb_out
-            h = h * (1 + scale)
+        scale, shift = torch.chunk(emb_out, 2, dim=1)
+        h = h*(1+scale)+shift
         h = self.out_layers[1:](h)
 
         x = self.skip_connection(x)
