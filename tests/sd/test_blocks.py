@@ -69,7 +69,6 @@ class ModelTest(unittest.TestCase):
     def test_downblock(self):
         for mod in self.unet.named_modules():
             if isinstance(mod[1], GoldDownBlock2D):
-                print(mod[0])
                 gold_block = mod[1]
                 block = DownBlock2D(
                     in_channels=1280,
