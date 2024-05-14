@@ -67,6 +67,8 @@ class Block(nn.Module):
         assert c.dim() == 2
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = \
             self.adaLN_modulation(c).chunk(6, dim=1)
+            
+        print(shift_msa.shape, gate_mlp.shape)
         gate_msa = gate_msa.unsqueeze(1)
         gate_mlp = gate_mlp.unsqueeze(1)
         scale_msa = scale_msa.unsqueeze(1)
