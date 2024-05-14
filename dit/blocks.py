@@ -66,15 +66,7 @@ class Block(nn.Module):
     def forward(self, x, c):
         assert c.dim() == 2
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = \
-            self.adaLN_modulation(c).unsqueeze(1).chunk(6, dim=1)
-            
-        print(shift_msa.shape, gate_mlp.shape)
-        # gate_msa = gate_msa.unsqueeze(1)
-        # gate_mlp = gate_mlp.unsqueeze(1)
-        # scale_msa = scale_msa.unsqueeze(1)
-        # shift_msa = shift_msa.unsqueeze(1)
-        # scale_mlp = scale_mlp.unsqueeze(1)
-        # shift_mlp = shift_mlp.unsqueeze(1)
+            self.adaLN_modulation(c).unsqueeze(1).chunk(6, dim=2)
 
         x = x + gate_msa * self.attn(
             (scale_msa+1)*self.norm1(x) + shift_msa)
