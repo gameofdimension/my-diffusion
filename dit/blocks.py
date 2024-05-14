@@ -77,5 +77,5 @@ class Block(nn.Module):
         x = x + gate_msa * self.attn(
             (scale_msa+1)*self.norm1(x) + shift_msa)
         x = x + gate_mlp * self.mlp(
-            (scale_mlp+1)*self.norm2(x) * shift_mlp)
+            (scale_mlp+1)*self.norm2(x) + shift_mlp)
         return x

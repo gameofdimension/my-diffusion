@@ -19,6 +19,10 @@ class ModelTest(unittest.TestCase):
             input_size=latent_size,
             num_classes=num_classes
         ).to(device)
+        ckpt_path = f"pretrained_models/DiT-XL-2-{image_size}x{image_size}.pt"
+        state_dict = torch.load(ckpt_path, map_location=lambda s, loc: s)
+        model.load_state_dict(state_dict)
+        model.eval()  # important!
         cls.model = model
         cls.device = device
 
@@ -39,6 +43,7 @@ class ModelTest(unittest.TestCase):
             class_dropout_prob=0.1,
         )
         mod.load_state_dict(gold_mod.state_dict())
+        mod.eval()
 
         x = torch.randn(10, 4, 64, 64, device=device)
         y = torch.randint(0, 1000+1, (10,), device=device)
