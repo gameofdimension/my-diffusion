@@ -56,15 +56,15 @@ class CondtionalUNetXL(torch.nn.Module):
 
         self.down_blocks = torch.nn.ModuleList([
             DownBlock2D(
-                in_channels=self.block_out_channels[0],
-                out_channels=self.block_out_channels[0],
+                in_channels=self.block_out_channels[0],  # 320
+                out_channels=self.block_out_channels[0],  # 320
                 temb_channels=time_embed_dim,
                 num_layers=self.layers_per_block,
                 add_downsample=True,
             ),
             CrossAttnDownBlock2D(
-                in_channels=self.block_out_channels[0],
-                out_channels=self.block_out_channels[1],
+                in_channels=self.block_out_channels[0],  # 320
+                out_channels=self.block_out_channels[1],  # 640
                 num_attention_heads=self.num_attention_heads[1],
                 temb_channels=time_embed_dim,
                 num_layers=self.layers_per_block,
@@ -75,8 +75,8 @@ class CondtionalUNetXL(torch.nn.Module):
 
             ),
             CrossAttnDownBlock2D(
-                in_channels=self.block_out_channels[1],
-                out_channels=self.block_out_channels[2],
+                in_channels=self.block_out_channels[1],  # 640
+                out_channels=self.block_out_channels[2],  # 1280
                 num_attention_heads=self.num_attention_heads[2],
                 temb_channels=time_embed_dim,
                 num_layers=self.layers_per_block,
@@ -87,7 +87,7 @@ class CondtionalUNetXL(torch.nn.Module):
             ),
         ])
         self.mid_block = UNetMidBlock2DCrossAttn(
-            in_channels=self.block_out_channels[-1],
+            in_channels=self.block_out_channels[2],  # 1280
             temb_channels=time_embed_dim,
             num_attention_heads=self.num_attention_heads[-1],
             num_layers=1,
@@ -97,9 +97,9 @@ class CondtionalUNetXL(torch.nn.Module):
         )
         self.up_blocks = torch.nn.ModuleList([
             CrossAttnUpBlock2D(
-                in_channels=self.block_out_channels[-2],
-                out_channels=self.block_out_channels[-1],
-                prev_output_channel=self.block_out_channels[-1],
+                in_channels=self.block_out_channels[1],  # 640
+                out_channels=self.block_out_channels[2],  # 1280
+                prev_output_channel=self.block_out_channels[2],  # 1280
                 temb_channels=time_embed_dim,
                 num_layers=self.layers_per_block+1,
                 transformer_layers=self.transformer_layers_per_block[2],
@@ -109,9 +109,9 @@ class CondtionalUNetXL(torch.nn.Module):
                 add_upsample=True,
             ),
             CrossAttnUpBlock2D(
-                in_channels=self.block_out_channels[-3],
-                out_channels=self.block_out_channels[-2],
-                prev_output_channel=self.block_out_channels[-1],
+                in_channels=self.block_out_channels[0],  # 320
+                out_channels=self.block_out_channels[1],  # 640
+                prev_output_channel=self.block_out_channels[2],  # 1280
                 temb_channels=time_embed_dim,
                 num_layers=self.layers_per_block+1,
                 transformer_layers=self.transformer_layers_per_block[1],
@@ -121,8 +121,8 @@ class CondtionalUNetXL(torch.nn.Module):
                 add_upsample=True,
             ),
             UpBlock2D(
-                in_channels=self.block_out_channels[-3],
-                out_channels=self.block_out_channels[-3],
+                in_channels=self.block_out_channels[0],  # 320
+                out_channels=self.block_out_channels[0],  # 320
                 prev_output_channel=self.block_out_channels[-2],
                 temb_channels=time_embed_dim,
                 num_layers=self.layers_per_block+1,
