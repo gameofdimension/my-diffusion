@@ -43,18 +43,26 @@ def trans_model(cout, h, w, cl, cc, head):
     return (proj_in+proj_out+block)
 
 
-def crossdown(h, w, cin, cout, cl, cc, head):
+def crossdown(h, w, cin, cout, cl, cc, head, downsample: bool):
     down = down_sample(h, w, cout)
     res1 = resblock(cin, cout, h, w)
     res2 = resblock(cout, cout, h, w)
     trans = trans_model(cout, h, w, cl, cc, head)
+    if downsample:
+        down = down_sample(h, w, cout)
+    else:
+        down = 0
     return down+res1+res2+trans+trans
 
 
-def downblock(h, w, cin, cout):
+def downblock(h, w, cin, cout, downsample: bool):
     res1 = resblock(cin, cout, h, w)
     res2 = resblock(cout, cout, h, w)
-    return res1+res2
+    if downsample:
+        down = down_sample(h, w, cout)
+    else:
+        down = 0
+    return res1+res2+down
 
 
 def middleblock(h, w, cin, cout, cl, cc, head):
@@ -69,17 +77,20 @@ def up_sample(h, w, cout):
     return (2*h)*(2*w)*cout*cout*(k*k)
 
 
-def upblock(h, w, cin, cskip, cout):
+def upblock(h, w, cin, cskip, cout, upsample: bool):
     res = resblock(cin+cskip, cout, h, w)
-    up = up_sample(h, w, cout)
+    if upsample:
+        up = up_sample(h, w, cout)
+    else:
+        up = 0
     return 3*res+up
 
 
-def cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head):
-    if cout == 320:
-        up = 0
-    else:
+def cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head, upsample: bool):
+    if upsample:
         up = up_sample(h, w, cout)
+    else:
+        up = 0
     res1 = resblock(cin+cskip1, cout, h, w)
     res2 = resblock(cout+cskip1, cout, h, w)
     res3 = resblock(cout+cskip2, cout, h, w)
@@ -95,7 +106,7 @@ def crosdown1(kind):
     elif kind == '21':
         cc = 1024
         head = 5
-    return crossdown(h, w, cin, cout, cl, cc, head=head)
+    return crossdown(h, w, cin, cout, cl, cc, head=head, downsample=True)
 
 
 def crosdown2(kind):
@@ -106,7 +117,7 @@ def crosdown2(kind):
     elif kind == '21':
         cc = 1024
         head = 5
-    return crossdown(h, w, cin, cout, cl, cc, head=head)
+    return crossdown(h, w, cin, cout, cl, cc, head=head, downsample=True)
 
 
 def crosdown3(kind):
@@ -117,12 +128,12 @@ def crosdown3(kind):
     elif kind == '21':
         cc = 1024
         head = 5
-    return crossdown(h, w, cin, cout, cl, cc, head=head)
+    return crossdown(h, w, cin, cout, cl, cc, head=head, downsample=True)
 
 
 def the_downblock():
     h, w, cin, cout = 8, 8, 1280, 1280
-    return downblock(h, w, cin, cout)
+    return downblock(h, w, cin, cout, downsample=False)
 
 
 def the_middleblock(kind):
@@ -138,7 +149,7 @@ def the_middleblock(kind):
 
 def th_upblock():
     h, w, cin, cskip, cout = 8, 8, 1280, 1280, 1280
-    return upblock(h, w, cin, cskip, cout)
+    return upblock(h, w, cin, cskip, cout, upsample=True)
 
 
 def crossup3(kind):
@@ -149,7 +160,7 @@ def crossup3(kind):
         cc = 1024
         head = 5
     h, w, cin, cskip1, cskip2, cout, cl = 16, 16, 1280, 1280, 640, 1280, 77  # noqa
-    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=head)
+    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=head, upsample=True)  # noqa
 
 
 def crossup2(kind):
@@ -160,7 +171,7 @@ def crossup2(kind):
         cc = 1024
         head = 5
     h, w, cin, cskip1, cskip2, cout, cl = 32, 32, 1280, 640, 320, 640, 77  # noqa
-    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=head)
+    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=head, upsample=True)  # noqa
 
 
 def crossup1(kind):
@@ -171,7 +182,7 @@ def crossup1(kind):
         cc = 1024
         head = 5
     h, w, cin, cskip1, cskip2, cout, cl = 64, 64, 640, 320, 320, 320, 77  # noqa
-    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=head)
+    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=head, upsample=False)  # noqa
 
 
 def model(kind):
