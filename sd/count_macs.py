@@ -87,19 +87,37 @@ def cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head):
     return up+res1+res2+res3+3*trans
 
 
-def crosdown1():
-    h, w, cin, cout, cl, cc = 64, 64, 320, 320, 77, 768
-    return crossdown(h, w, cin, cout, cl, cc, head=8)
+def crosdown1(kind):
+    h, w, cin, cout, cl = 64, 64, 320, 320, 77
+    if kind == '15':
+        cc = 768
+        head = 8
+    elif kind == '21':
+        cc = 1024
+        head = 5
+    return crossdown(h, w, cin, cout, cl, cc, head=head)
 
 
-def crosdown2():
-    h, w, cin, cout, cl, cc = 32, 32, 320, 640, 77, 768
-    return crossdown(h, w, cin, cout, cl, cc, head=8)
+def crosdown2(kind):
+    h, w, cin, cout, cl = 32, 32, 320, 640, 77
+    if kind == '15':
+        cc = 768
+        head = 8
+    elif kind == '21':
+        cc = 1024
+        head = 5
+    return crossdown(h, w, cin, cout, cl, cc, head=head)
 
 
-def crosdown3():
-    h, w, cin, cout, cl, cc = 16, 16, 640, 1280, 77, 768
-    return crossdown(h, w, cin, cout, cl, cc, head=8)
+def crosdown3(kind):
+    h, w, cin, cout, cl = 16, 16, 640, 1280, 77
+    if kind == '15':
+        cc = 768
+        head = 8
+    elif kind == '21':
+        cc = 1024
+        head = 5
+    return crossdown(h, w, cin, cout, cl, cc, head=head)
 
 
 def the_downblock():
@@ -107,9 +125,15 @@ def the_downblock():
     return downblock(h, w, cin, cout)
 
 
-def the_middleblock():
-    h, w, cin, cout, cl, cc = 8, 8, 1280, 1280, 77, 768
-    return middleblock(h, w, cin, cout, cl, cc, head=8)
+def the_middleblock(kind):
+    h, w, cin, cout, cl = 8, 8, 1280, 1280, 77
+    if kind == '15':
+        cc = 768
+        head = 8
+    elif kind == '21':
+        cc = 1024
+        head = 5
+    return middleblock(h, w, cin, cout, cl, cc, head=head)
 
 
 def th_upblock():
@@ -117,38 +141,58 @@ def th_upblock():
     return upblock(h, w, cin, cskip, cout)
 
 
-def crossup3():
-    h, w, cin, cskip1, cskip2, cout, cl, cc = 16, 16, 1280, 1280, 640, 1280, 77, 768  # noqa
-    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=8)
+def crossup3(kind):
+    if kind == '15':
+        cc = 768
+        head = 8
+    elif kind == '21':
+        cc = 1024
+        head = 5
+    h, w, cin, cskip1, cskip2, cout, cl = 16, 16, 1280, 1280, 640, 1280, 77  # noqa
+    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=head)
 
 
-def crossup2():
-    h, w, cin, cskip1, cskip2, cout, cl, cc = 32, 32, 1280, 640, 320, 640, 77, 768  # noqa
-    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=8)
+def crossup2(kind):
+    if kind == '15':
+        cc = 768
+        head = 8
+    elif kind == '21':
+        cc = 1024
+        head = 5
+    h, w, cin, cskip1, cskip2, cout, cl = 32, 32, 1280, 640, 320, 640, 77  # noqa
+    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=head)
 
 
-def crossup1():
-    h, w, cin, cskip1, cskip2, cout, cl, cc = 64, 64, 640, 320, 320, 320, 77, 768  # noqa
-    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=8)
+def crossup1(kind):
+    if kind == '15':
+        cc = 768
+        head = 8
+    elif kind == '21':
+        cc = 1024
+        head = 5
+    h, w, cin, cskip1, cskip2, cout, cl = 64, 64, 640, 320, 320, 320, 77  # noqa
+    return cross_up(h, w, cin, cskip1, cskip2, cout, cl, cc, head=head)
 
 
-def model():
-    d1 = crosdown1()
-    d2 = crosdown2()
-    d3 = crosdown3()
+def model(kind):
+    d1 = crosdown1(kind)
+    d2 = crosdown2(kind)
+    d3 = crosdown3(kind)
     d4 = the_downblock()
-    m = the_middleblock()
+    m = the_middleblock(kind)
     u4 = th_upblock()
-    u3 = crossup3()
-    u2 = crossup2()
-    u1 = crossup1()
+    u3 = crossup3(kind)
+    u2 = crossup2(kind)
+    u1 = crossup1(kind)
 
     return d1+d2+d3+d4+m+u4+u3+u2+u1
 
 
 def main():
-    macs = model()
-    print(f"macs: {macs:.3f}")
+    macs = model('15')
+    print(f"macs: {macs/1e9:.3f}")
+    macs = model('21')
+    print(f"macs: {macs/1e9:.3f}")
 
 
 if __name__ == "__main__":
