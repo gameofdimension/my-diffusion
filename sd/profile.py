@@ -21,13 +21,13 @@ def deepspeed_profile(model, args):
         model=model,
         args=args,
         kwargs=None,
-        print_profile=False,
-        # detailed=True,
+        print_profile=True,
+        detailed=True,
         module_depth=-1,
         top_modules=1,
         warm_up=1,
         as_string=False,
-        output_file=None,
+        output_file='profile.txt',
         ignore_modules=None
     )
     return macs
@@ -59,8 +59,8 @@ def profile(type: str, prof_func):
 
 if __name__ == '__main__':
     print(profile('sd15', profile_macs))
-    print(profile('sd21', profile_macs))
-    print(profile('sdxl', profile_macs))
+    # print(profile('sd21', profile_macs))
+    # print(profile('sdxl', profile_macs))
     print(profile('sd15', deepspeed_profile))
-    print(profile('sd21', deepspeed_profile))
-    print(profile('sdxl', deepspeed_profile))
+    # print(profile('sd21', deepspeed_profile))
+    # print(profile('sdxl', deepspeed_profile))

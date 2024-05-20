@@ -95,29 +95,17 @@ class CondtionalUNet15(torch.nn.Module):
         )
         self.up_blocks = torch.nn.ModuleList([
             UpBlock2D(
-                in_channels=self.block_out_channels[-2],
-                out_channels=self.block_out_channels[-1],
-                prev_output_channel=self.block_out_channels[-1],
+                in_channels=self.block_out_channels[2],  # 1280
+                out_channels=self.block_out_channels[3],  # 1280
+                prev_output_channel=self.block_out_channels[3],  # 1280
                 temb_channels=time_embed_dim,
                 num_layers=self.layers_per_block+1,
                 add_upsample=True,
             ),
             CrossAttnUpBlock2D(
-                in_channels=self.block_out_channels[-3],
-                out_channels=self.block_out_channels[-2],
-                prev_output_channel=self.block_out_channels[-1],
-                temb_channels=time_embed_dim,
-                num_layers=self.layers_per_block+1,
-                transformer_layers=1,
-                num_attention_heads=self.num_attention_heads,
-                cross_attention_dim=self.cross_attention_dim,
-                use_linear_projection=self.use_linear_projection,
-                add_upsample=True,
-            ),
-            CrossAttnUpBlock2D(
-                in_channels=self.block_out_channels[-4],
-                out_channels=self.block_out_channels[-3],
-                prev_output_channel=self.block_out_channels[-2],
+                in_channels=self.block_out_channels[1],  # 640
+                out_channels=self.block_out_channels[2],  # 1280
+                prev_output_channel=self.block_out_channels[3],  # 1280
                 temb_channels=time_embed_dim,
                 num_layers=self.layers_per_block+1,
                 transformer_layers=1,
@@ -127,9 +115,21 @@ class CondtionalUNet15(torch.nn.Module):
                 add_upsample=True,
             ),
             CrossAttnUpBlock2D(
-                in_channels=self.block_out_channels[-4],
-                out_channels=self.block_out_channels[-4],
-                prev_output_channel=self.block_out_channels[-3],
+                in_channels=self.block_out_channels[0],  # 320
+                out_channels=self.block_out_channels[1],  # 640
+                prev_output_channel=self.block_out_channels[2],  # 1280
+                temb_channels=time_embed_dim,
+                num_layers=self.layers_per_block+1,
+                transformer_layers=1,
+                num_attention_heads=self.num_attention_heads,
+                cross_attention_dim=self.cross_attention_dim,
+                use_linear_projection=self.use_linear_projection,
+                add_upsample=True,
+            ),
+            CrossAttnUpBlock2D(
+                in_channels=self.block_out_channels[0],  # 320
+                out_channels=self.block_out_channels[0],  # 320
+                prev_output_channel=self.block_out_channels[1],  # 640
                 temb_channels=time_embed_dim,
                 num_layers=self.layers_per_block+1,
                 transformer_layers=1,
