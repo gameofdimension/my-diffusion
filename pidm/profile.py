@@ -25,21 +25,20 @@ def deepspeed_profile(model, args):
             model=model,
             args=args,
             kwargs=None,
-            print_profile=False,
-            # detailed=True,
+            print_profile=not True,
+            detailed=True,
             module_depth=-1,
             top_modules=1,
             warm_up=1,
             as_string=False,
-            output_file=None,
+            output_file="my.txt",
             ignore_modules=None
         )
     return macs
 
 
-def profile(prof_func):
+def profile(prof_func, h, w):
     device = 'cuda'
-    h, w = 256*2*2, 256*2*2
     model = make_model(h).to(device)
     bsz = 1
 
@@ -48,9 +47,20 @@ def profile(prof_func):
     ref = torch.randn(bsz, 3, h, w, device=device)
     out = prof_func(
         model, args=(noise, timestep, ref))
-    return f"{out/1e9:.3f} GMACs"
+    return out
 
 
 if __name__ == '__main__':
-    print(profile(profile_macs))
-    print(profile(deepspeed_profile))
+    # for h, w in [(128, 128), (256, 192), (256, 256), (512, 384),
+    #              (512, 512), (1024, 768), (1024, 1024)]:
+    # h, w = 128, 128
+    # h, w = 256, 192
+    # h, w = 256, 256
+    # h, w = 512, 384
+    # h, w = 512, 512
+    # h, w = 1024, 768
+    h, w = 1024, 1024
+    v1 = profile(profile_macs, h, w)
+    v2 = profile(deepspeed_profile, h, w)
+    # print(f"{v1/1e9:.3f} GMACS, {v2/1e9:.3f} GMACS, {v2/(h*w):.3f}")
+    print(h*w, v1, v2)
